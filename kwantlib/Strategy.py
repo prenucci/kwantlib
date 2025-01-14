@@ -107,8 +107,6 @@ class Strategy:
             position = self.position,
             returns = self.returns
         )
-        if hasattr(pnl.index, 'date'):
-            pnl = pnl.groupby(pnl.index.date).sum()
         return pnl
     
     @staticmethod
