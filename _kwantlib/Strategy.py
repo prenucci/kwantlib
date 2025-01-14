@@ -144,8 +144,8 @@ class Strategy:
     @staticmethod
     def compute_ftrading(pos:pd.DataFrame) -> pd.Series:
         if hasattr(pos.index, 'date'):
-            pos_abs = pos.abs().groupby(pos.index.date).mean()
-        return (pos_abs > 0).mean()
+            pos = pos.abs().groupby(pos.index.date).mean()
+        return (pos > 0).mean()
     
     @staticmethod
     def compute_turnover(pos:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.Series:
@@ -158,7 +158,7 @@ class Strategy:
         return 100 * pos_change.mean() / pos_abs.mean() 
     
     @staticmethod
-    def compute_pnl_per_trade(pnl:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.Series:
+    def compute_pnl_per_trade(pnl:pd.DataFrame, pos_change:pd.DataFrame) -> pd.Series:
         if hasattr(pos_change.index, 'date'):
             pos_change = pos_change.groupby(pos_change.index.date).sum()
             pnl = pnl.groupby(pnl.index.date).sum()
@@ -180,8 +180,10 @@ class Strategy:
     
     @staticmethod
     def compute_metrics(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.DataFrame | pd.Series:
+        
         if pos_change is None:
             pos_change = pos.diff().abs() 
+
         metric = {
             'ftrading': Strategy.compute_ftrading(pos),
             'turnover': Strategy.compute_turnover(pos, pos_change),
@@ -252,7 +254,7 @@ class Strategy:
     def show(self:'Strategy', training_date:str=None) -> pd.DataFrame:
         pnl = self.pnl.fillna(0).loc[training_date:, :]
         pos = self.position.abs()
-        pos_change = pos.diff().abs()
+        pos_change = self.position.diff().abs()
         if hasattr(self, 'spread'):
             cost = self.cost.loc[training_date:, :]
         if hasattr(pos.index, 'date'):
