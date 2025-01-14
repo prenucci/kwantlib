@@ -8,7 +8,6 @@ setup(
         "pandas",
         "numpy",
         "scikit-learn",
-        "tskit-learn",
         "plotly",
         ],
     author="Pierre Renucci",
