@@ -68,9 +68,10 @@ class Strategy:
     
     @staticmethod 
     def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame, is_vol_target:bool = True) -> pd.DataFrame:
-        signal = signal.reindex(volatility.index).ffill().ffill()
+        signal = signal.reindex(volatility.index).ffill().fillna(0)
         pos = signal.div(volatility, axis = 0, level = 0) if is_vol_target else signal  
-        pos = pos.where(pos.zscore().abs() < 5, np.nan).ffill()
+        zscore = ( pos - pos.expanding().mean() ) / pos.expanding().std()
+        pos = pos.where(zscore.abs() < 5, np.nan).ffill()
         return pd.concat([ 
             pos.loc[:, [col]].reindex(
                 volatility.loc[:, col].dropna().index
