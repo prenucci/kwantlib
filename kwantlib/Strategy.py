@@ -26,7 +26,7 @@ class Strategy:
         )
 
         if len(instruments) == 0: #All the same signal for all the assets
-            signal = pd.concat({col:signal for col in self.returns.columns}, axis=1)
+            signal = pd.concat({col:signal for col in returns.columns}, axis=1)
             instruments = returns.columns
 
         self.signal: pd.DataFrame = signal.loc[:, instruments].copy()
