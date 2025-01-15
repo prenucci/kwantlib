@@ -62,9 +62,10 @@ class Strategy:
     
     @property
     def volatility(self: 'Strategy') -> pd.DataFrame:
-        return self.returns.apply( 
+        vol = self.returns.apply( 
             lambda x: x.dropna().rolling(15).std() 
             )
+        return vol.reindex(self.returns.index).ffill()
     
     @staticmethod 
     def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame, is_vol_target:bool = True) -> pd.DataFrame:
