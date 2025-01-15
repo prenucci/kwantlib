@@ -30,7 +30,13 @@ def flatten_columns(df:pd.DataFrame) -> pd.DataFrame:
     return df_
 
 def plotx(df:pd.Series | pd.DataFrame):
-    return px.line(flatten_columns(df))
+    match type(df):
+        case pd.Series:
+            return px.line(df)
+        case pd.DataFrame:
+            return px.line(flatten_columns(df))
+        case _:
+            raise TypeError
 
 def zscore(
     df: pd.DataFrame | pd.Series, 
@@ -44,18 +50,24 @@ def zscore(
         'ewm': lambda x: x.ewm(lookback)
     }[method]
 
-    if isinstance(df, pd.Series):
-        return (df - window(df.dropna()).mean()) / window(df.dropna()).std()
-    elif isinstance(df, pd.DataFrame):
-        return df.apply(lambda x: (x - window(x.dropna()).mean()) / window(x.dropna()).std())
-    else:
-        raise TypeError
+    match type(df):
+        case pd.Series:
+            zscore = (df - window(df.dropna()).mean()) / window(df.dropna()).std()
+        case pd.DataFrame:
+            zscore = df.apply(lambda x: (x - window(x.dropna()).mean()) / window(x.dropna()).std())
+        case _:
+            raise TypeError
+    
+    return zscore.reindex(df.index).ffill()
 
 def apply_pd_monkeypatch():
     pd.DataFrame.shift_with_sample = shift_with_sample 
     pd.Series.shift_with_sample = shift_with_sample
     pd.DataFrame.permute_levels = permute_levels 
     pd.DataFrame.flatten_columns = flatten_columns
+
     pd.DataFrame.plotx = plotx 
     pd.Series.plotx = plotx 
+
+    pd.Series.zscore = zscore
     pd.DataFrame.zscore = zscore
