@@ -4,13 +4,16 @@ import numpy  as np
 from typing import Iterable, Callable
 
 from .pandasMonkeypatch import apply_pd_monkeypatch
-from .operators import proj, vote, cross_moving_average, markovitz_maxsharpe, ranking #, infer
+from .operators import proj, vote, cross_moving_average, markovitz, ranking, infer
 
+from sklearn.linear_model import ElasticNet
 apply_pd_monkeypatch()
 
 ############ Strategy Class
 
 class Strategy:
+
+    fee_per_transaction:float = 0
 
     def __init__(
         self: 'Strategy', 
@@ -18,23 +21,21 @@ class Strategy:
         returns:pd.DataFrame,
         spread:pd.DataFrame = None,
         is_vol_target:bool=True,
-        fee_per_transaction:float = 5e-1,
     ):
 
         instruments = returns.columns.intersection(
             signal.columns.get_level_values(0).unique()      
         )
 
-        if len(instruments) == 0: #All the same signal for all the assets
-            signal = pd.concat({col:signal for col in returns.columns}, axis=1)
-            instruments = returns.columns
-
         self.signal: pd.DataFrame = signal.loc[:, instruments].copy()
         self.returns: pd.DataFrame = returns.loc[:, instruments].copy()
+
         if spread is not None:
             self.spread:pd.DataFrame = spread.loc[:, instruments].copy()
+            assert self.spread.index.equals(self.returns.index), 'spread and returns must have the same index'
+            assert self.spread.columns.equals(self.returns.columns), 'spread and returns must have the same columns'
+
         self.is_vol_target = is_vol_target
-        self.fee_per_transaction = fee_per_transaction
     
     def _reinit(
         self:'Strategy',
@@ -42,7 +43,6 @@ class Strategy:
         returns:pd.DataFrame = None,
         spread:pd.DataFrame = None,
         is_vol_target:bool = None,
-        fee_per_transaction:float = None,
     ) -> 'Strategy':
 
         return Strategy(
@@ -50,7 +50,6 @@ class Strategy:
             returns= returns if returns is not None else self.returns.copy(),
             spread = spread if spread is not None else self.spread.copy(),
             is_vol_target = is_vol_target if is_vol_target is not None else self.is_vol_target,
-            fee_per_transaction = fee_per_transaction if fee_per_transaction is not None else self.fee_per_transaction,
         )
     
     def __getitem__(self:'Strategy', to_keep_list:Iterable[str]) -> 'Strategy':
@@ -97,18 +96,18 @@ class Strategy:
         
         pnl = pd.concat([
             _pnl(position.loc[:, [col]], returns.loc[:, col].dropna()) for col in returns.columns 
-        ], axis = 1).fillna(0)
+        ], axis = 1)
 
         assert not pnl.apply(np.isinf).any().any(), 'inf in your pnl'
 
-        return pnl.fillna(0)    
+        return pnl
     
     @property
     def pnl(self: 'Strategy') -> pd.DataFrame:
         pnl = Strategy.compute_pnl(
-            position = self.position,
-            returns = self.returns
-        )
+                position = self.position,
+                returns = self.returns
+            )
         return pnl
     
     @staticmethod
@@ -126,7 +125,7 @@ class Strategy:
         return Strategy.compute_cost(
             pos_change = self.position.diff().abs(),
             spread = self.spread,
-            fee_per_transaction = self.fee_per_transaction
+            fee_per_transaction = Strategy.fee_per_transaction
         )
     
     @property
@@ -289,6 +288,7 @@ class Strategy:
     def weighting(self:'Strategy', func:Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> 'Strategy':
         pnl_train = self.pnl.shift(1)
         weights = func(pnl_train, *args, **kwargs).ffill(0)
+        weights = weights.reindex(self.signal.index).ffill().fillna(0)
         return self._reinit(
             signal = self.signal.multiply(weights, axis = 0)
             )
@@ -299,8 +299,81 @@ class Strategy:
         return self.weighting(lambda pnl: _sharpe(pnl) > threshold)
 
     def markovitz(self:'Strategy', *args, **kwargs) -> 'Strategy':
-        return self.weighting(markovitz_maxsharpe, *args, **kwargs)
+        return self.weighting(markovitz, *args, **kwargs)
     
     def isorisk(self:'Strategy') -> 'Strategy':
         return self.weighting(lambda pnl: 1 / pnl.dropna().expanding().std())
+    
+    #### Infer
 
+    def forecast(
+            self:'Strategy', model:object = ElasticNet(), train_every_n_steps:int = 30, lookahead_steps:int = 0,
+        ) -> 'Strategy':
+
+        target = self.returns.shift(-lookahead_steps)
+        features = self.signal
+        return self._reinit(
+            signal = infer(target, features, model, train_every_n_steps, lookahead_steps)
+            )
+
+    def residual(
+            self:'Strategy', model:object = ElasticNet(), train_every_n_steps:int = 30, lookahead_steps:int = 0,
+        ) -> 'Strategy':
+        target = self.returns
+        features = self.signal
+        residual_ = target - infer(
+            target, features, model, train_every_n_steps, lookahead_steps
+        )
+        return self._reinit(signal = residual_.apply(lambda x: x.dropna().cumsum()))
+
+
+class BidAskStrategy(Strategy):
+    def __init__(
+        self: 'BidAskStrategy', 
+        signal:pd.DataFrame,
+        bid:pd.DataFrame,
+        ask:pd.DataFrame,
+        is_vol_target:bool=True,
+    ) -> None:
+        assert bid.columns.equals(ask.columns), 'bid and ask must have the same columns'
+        assert bid.index.equals(ask.index), 'bid and ask must have the same index'
+        
+        mid_price = (bid + ask) / 2
+        returns = mid_price.apply(lambda x: x.pct_change())
+        super().__init__(signal, returns, is_vol_target=is_vol_target)
+
+        self.bid = bid
+        self.ask = ask
+
+    
+    @staticmethod
+    def compute_pnl_from_bid_n_ask(
+        position:pd.DataFrame, 
+        bid:pd.DataFrame, 
+        ask:pd.DataFrame
+    ) -> pd.DataFrame:
+        
+        def _pnl(pos:pd.DataFrame, bid:pd.DataFrame, ask:pd.DataFrame) -> pd.DataFrame:
+            price = (bid + ask) / 2
+            pos = pos.reindex(price.index).ffill().fillna(0)
+            pos_change_in_lot = pos.div(price, axis=0).diff()
+            return (
+                pos.diff() # Diff of the variation of the portfolio
+                + pos_change_in_lot.where(pos_change_in_lot > 0, 0).multiply(ask.shift(1), axis=0) # Cash flow from buying
+                + pos_change_in_lot.where(pos_change_in_lot < 0, 0).multiply(bid.shift(1), axis=0) # Cash flow from selling
+                )
+        
+        pnl = pd.concat([
+            _pnl(position.loc[:, col], bid.loc[:, col].dropna(), ask.loc[:, col].dropna()) for col in bid.columns
+        ], axis = 1)
+
+        return pnl
+
+
+    def pnl(self:'BidAskStrategy') -> pd.DataFrame:
+        pnl = BidAskStrategy.compute_pnl_from_bid_n_ask(
+            position = self.position,
+            bid = self.bid,
+            ask = self.ask
+        )
+        return pnl

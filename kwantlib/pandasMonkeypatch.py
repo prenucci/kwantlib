@@ -63,6 +63,7 @@ def zscore(
 def apply_pd_monkeypatch():
     pd.DataFrame.shift_with_sample = shift_with_sample 
     pd.Series.shift_with_sample = shift_with_sample
+    
     pd.DataFrame.permute_levels = permute_levels 
     pd.DataFrame.flatten_columns = flatten_columns
 
