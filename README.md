@@ -34,6 +34,7 @@ Operator.backtest(pos, pnl)
 You can also perform a backtest with the following strategy:
 
 ```python
+
 s = Strategy(
     returns=price.pct_change(),
     signal=price,
