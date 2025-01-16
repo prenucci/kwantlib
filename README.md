@@ -2,13 +2,6 @@
 
 A Python library for quantitative analysis and systematic trading.
 
-## Installation
-
-To install the necessary dependencies, use the following command:
-
-```bash
-pip install -r requirements.txt
-```
 
 ## Usage
 
@@ -33,8 +26,7 @@ signal = Operator.proj(cma, threshold=0.1)
 pos = Strategy.compute_position(signal, vol)
 pnl = Strategy.compute_pnl(pos, returns)
 
-# Plot cumulative PnL
-plotx(pnl.cumsum() / pnl.std())
+Operator.backtest(pos, pnl)
 ```
 
 ## Backtesting
@@ -42,11 +34,15 @@ plotx(pnl.cumsum() / pnl.std())
 You can also perform a backtest with the following strategy:
 
 ```python
-Strategy(
+s = Strategy(
     returns=price.pct_change(),
     signal=price,
     is_vol_target=True
-).cross_moving_average().proj().backtest()
+)
+
+s = s.cross_moving_average().proj()
+
+s.show()
 ```
 
 ## Conclusion
