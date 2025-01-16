@@ -1,13 +1,12 @@
 import pandas as pd 
 import numpy  as np 
 
-from typing import Iterable, Callable
+from typing import Iterable, Callable, Literal
 
-from .pandasMonkeypatch import apply_pd_monkeypatch
-from .operators import proj, vote, cross_moving_average, markovitz, ranking, infer
+from .pandasMonkeypatch import plotx
+from .operator import Operator
 
 from sklearn.linear_model import ElasticNet
-apply_pd_monkeypatch()
 
 ############ Strategy Class
 
@@ -16,12 +15,8 @@ class Strategy:
     fee_per_transaction:float = 0
 
     def __init__(
-        self: 'Strategy', 
-        signal:pd.DataFrame,
-        returns:pd.DataFrame,
-        spread:pd.DataFrame = None,
-        is_vol_target:bool=True,
-    ):
+            self: 'Strategy', signal:pd.DataFrame, returns:pd.DataFrame, spread:pd.DataFrame = None, is_vol_target:bool=True
+        ) -> None:
 
         instruments = returns.columns.intersection(
             signal.columns.get_level_values(0).unique()      
@@ -38,12 +33,8 @@ class Strategy:
         self.is_vol_target = is_vol_target
     
     def _reinit(
-        self:'Strategy',
-        signal:pd.DataFrame = None,
-        returns:pd.DataFrame = None,
-        spread:pd.DataFrame = None,
-        is_vol_target:bool = None,
-    ) -> 'Strategy':
+            self:'Strategy',signal:pd.DataFrame = None,returns:pd.DataFrame = None,spread:pd.DataFrame = None,is_vol_target:bool = None
+        ) -> 'Strategy':
 
         return Strategy(
             signal = signal if signal is not None else self.signal.copy(),
@@ -68,14 +59,14 @@ class Strategy:
     
     @staticmethod 
     def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame, is_vol_target:bool = True) -> pd.DataFrame:
-        signal = signal.reindex(volatility.index).ffill().fillna(0)
+        signal = signal.reindex(volatility.index, method='ffill')
         pos = signal.div(volatility, axis = 0, level = 0) if is_vol_target else signal  
         zscore = ( pos - pos.expanding().mean() ) / pos.expanding().std()
         pos = pos.where(zscore.abs() < 5, np.nan).ffill()
         return pd.concat([ 
             pos.loc[:, [col]].reindex(
-                volatility.loc[:, col].dropna().index
-            ).ffill() # nécessaire pour pas modifier la pos les jours ou l'exchange est close
+                volatility.loc[:, col].dropna().index, method='ffill'
+            ) # nécessaire pour pas modifier la pos les jours ou l'exchange est close
             for col in volatility.columns
         ], axis = 1).ffill()
     
@@ -92,10 +83,12 @@ class Strategy:
         def _pnl(pos:pd.DataFrame, ret:pd.Series) -> pd.DataFrame: 
             # necessaire de faire la multiplication sur les index de ret sinon 
             # introduction de biais style "move the pos at days when you can't"
+            pos = pos.reindex(ret.index, method='ffill')
             return pos.shift(1).multiply(ret, axis=0)
         
         pnl = pd.concat([
-            _pnl(position.loc[:, [col]], returns.loc[:, col].dropna()) for col in returns.columns 
+            _pnl(position.loc[:, [col]], returns.loc[:, col].dropna()) 
+            for col in returns.columns 
         ], axis = 1)
 
         assert not pnl.apply(np.isinf).any().any(), 'inf in your pnl'
@@ -134,8 +127,9 @@ class Strategy:
     
     @property
     def return_pnl(self:'Strategy') -> pd.Series:
-        pnl, pos = self.pnl.fillna(0).sum(1), self.position.abs().sum(1)
-        return pnl.div(pos.ffill().shift(1)).where(pos != 0, 0)
+        pnl = self.pnl.fillna(0).sum(1)
+        pos_abs = self.position.abs().sum(1)
+        return pnl.div(pos_abs.ffill().shift(1)).fillna(0)
     
     @property
     def compounded_value(self:'Strategy') -> pd.Series:
@@ -248,8 +242,8 @@ class Strategy:
         pos_total = pos.abs().sum(1).to_frame('overall')
         pos_change_total = pos_change.sum(1).to_frame('overall')
         print(Strategy.compute_metrics(pos_total, pnl_total, pos_change_total))
-        ( pnl_total.cumsum() / pnl_total.std() ).plotx().show()
-        ( pnl.cumsum() / pnl.std() ).plotx().show()
+        plotx( pnl_total.cumsum() / pnl_total.std() ).show()
+        plotx( pnl.cumsum() / pnl.std() ).show()
         return Strategy.compute_metrics(pos, pnl)
 
     def show(self:'Strategy', training_date:str=None) -> pd.DataFrame:
@@ -267,113 +261,61 @@ class Strategy:
     ### Operators
 
     def apply(self:'Strategy', func:Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> 'Strategy':
-        return self._reinit(
-            signal = func(self.signal, *args, **kwargs)
-            )
+        return self._reinit(signal = func(self.signal, *args, **kwargs))
 
     def cross_moving_average(self:'Strategy', *args, **kwargs) -> 'Strategy':
-        return self.apply(cross_moving_average, *args, **kwargs)
+        return self.apply(Operator.cross_moving_average, *args, **kwargs)
     
     def proj(self:'Strategy', *args, **kwargs) -> 'Strategy':
-        return self.apply(proj, *args, **kwargs)
+        return self.apply(Operator.proj, *args, **kwargs)
     
     def vote(self:'Strategy', *args, **kwargs) -> 'Strategy':
-        return self.apply(vote, *args, **kwargs)
+        return self.apply(Operator.vote, *args, **kwargs)
     
     def ranking(self:'Strategy', *args, **kwargs) -> 'Strategy':
-        return self.apply(ranking, *args, **kwargs)
+        return self.apply(Operator.ranking, *args, **kwargs)
     
     ### weighting
 
-    def weighting(self:'Strategy', func:Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> 'Strategy':
-        pnl_train = self.pnl.shift(1)
-        weights = func(pnl_train, *args, **kwargs).ffill(0)
-        weights = weights.reindex(self.signal.index).ffill().fillna(0)
-        return self._reinit(
-            signal = self.signal.multiply(weights, axis = 0)
-            )
+    def markovitz(
+        self:'Strategy', method:Literal['minvol', 'maxsharpe'] = 'minvol', level:Literal['cross asset', 'per asset'] = 'cross asset'
+    ) -> 'Strategy':
+        pnl = self.pnl.shift(1)
+        w = Operator.markovitz(pnl, method=method, level=level)
+        return self._reinit(signal = self.signal.multiply(w))
+    
+    def isorisk(self:'Strategy') -> 'Strategy':
+        pnl = self.pnl.shift(1)
+        w = pnl.apply(lambda x: x.dropna().expanding().std())
+        return self._reinit(signal = self.signal.div(w))
+
+    ### Cutoffs
     
     def low_sharpe_cutoff(self:'Strategy', threshold:float = 0.3) -> 'Strategy':
         def _sharpe(pnl:pd.Series) -> pd.Series:
-            return 16 * pnl.expanding().mean() / pnl.expanding().std()
-        return self.weighting(lambda pnl: _sharpe(pnl) > threshold)
-
-    def markovitz(self:'Strategy', *args, **kwargs) -> 'Strategy':
-        return self.weighting(markovitz, *args, **kwargs)
+            return 16 * pnl.dropna().expanding().mean() / pnl.dropna().expanding().std()
+        sharpe = self.pnl.shift(1).apply(_sharpe) < threshold
+        return self._reinit(signal = self.signal.where(sharpe, 0))
     
-    def isorisk(self:'Strategy') -> 'Strategy':
-        return self.weighting(lambda pnl: 1 / pnl.dropna().expanding().std())
-    
-    #### Infer
+    #### ML
 
     def forecast(
-            self:'Strategy', model:object = ElasticNet(), train_every_n_steps:int = 30, lookahead_steps:int = 0,
-        ) -> 'Strategy':
+        self:'Strategy', model:object = ElasticNet(), lookahead_steps:int = 0, *args, **kwargs
+    ) -> 'Strategy':
 
         target = self.returns.shift(-lookahead_steps)
         features = self.signal
         return self._reinit(
-            signal = infer(target, features, model, train_every_n_steps, lookahead_steps)
-            )
+            signal = Operator.infer(target, features, model, lookahead_steps = lookahead_steps, *args, **kwargs)
+        )
 
     def residual(
-            self:'Strategy', model:object = ElasticNet(), train_every_n_steps:int = 30, lookahead_steps:int = 0,
-        ) -> 'Strategy':
+        self:'Strategy', model:object = ElasticNet(), *args, **kwargs
+    ) -> 'Strategy':
         target = self.returns
         features = self.signal
-        residual_ = target - infer(
-            target, features, model, train_every_n_steps, lookahead_steps
-        )
+        residual_ = target - Operator.infer(target, features, model, *args, **kwargs)
         return self._reinit(signal = residual_.apply(lambda x: x.dropna().cumsum()))
-
-
-class BidAskStrategy(Strategy):
-    def __init__(
-        self: 'BidAskStrategy', 
-        signal:pd.DataFrame,
-        bid:pd.DataFrame,
-        ask:pd.DataFrame,
-        is_vol_target:bool=True,
-    ) -> None:
-        assert bid.columns.equals(ask.columns), 'bid and ask must have the same columns'
-        assert bid.index.equals(ask.index), 'bid and ask must have the same index'
-        
-        mid_price = (bid + ask) / 2
-        returns = mid_price.apply(lambda x: x.pct_change())
-        super().__init__(signal, returns, is_vol_target=is_vol_target)
-
-        self.bid = bid
-        self.ask = ask
-
     
-    @staticmethod
-    def compute_pnl_from_bid_n_ask(
-        position:pd.DataFrame, 
-        bid:pd.DataFrame, 
-        ask:pd.DataFrame
-    ) -> pd.DataFrame:
-        
-        def _pnl(pos:pd.DataFrame, bid:pd.DataFrame, ask:pd.DataFrame) -> pd.DataFrame:
-            price = (bid + ask) / 2
-            pos = pos.reindex(price.index).ffill().fillna(0)
-            pos_change_in_lot = pos.div(price, axis=0).diff()
-            return (
-                pos.diff() # Diff of the variation of the portfolio
-                + pos_change_in_lot.where(pos_change_in_lot > 0, 0).multiply(ask.shift(1), axis=0) # Cash flow from buying
-                + pos_change_in_lot.where(pos_change_in_lot < 0, 0).multiply(bid.shift(1), axis=0) # Cash flow from selling
-                )
-        
-        pnl = pd.concat([
-            _pnl(position.loc[:, col], bid.loc[:, col].dropna(), ask.loc[:, col].dropna()) for col in bid.columns
-        ], axis = 1)
-
-        return pnl
-
-
-    def pnl(self:'BidAskStrategy') -> pd.DataFrame:
-        pnl = BidAskStrategy.compute_pnl_from_bid_n_ask(
-            position = self.position,
-            bid = self.bid,
-            ask = self.ask
-        )
-        return pnl
+    def cluster(self:'Strategy', *args, **kwargs) -> 'Strategy':
+        raise NotImplementedError('cluster')
