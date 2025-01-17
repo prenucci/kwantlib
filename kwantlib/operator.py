@@ -100,17 +100,21 @@ class Operator:
                 raise ValueError(f"signal should be a pd.Series or pd.DataFrame not {type(signal)}")
 
     @staticmethod
+    @staticmethod
+    def _is_top_k(row:pd.Series, k:int) -> pd.DataFrame:
+        threshold = row.nlargest(k).iloc[-1]
+        return (row > threshold).astype(int)
+
+    @staticmethod
     def _ranking_row(row:pd.Series, k:int) -> pd.DataFrame:
-        top_k_per_row = row.isin(row.nlargest(k))
-        bottom_k_per_row = row.isin(row.nsmallest(k))
-        return top_k_per_row.astype(int) - bottom_k_per_row.astype(int)
+        return Operator._is_top_k(row, k) - Operator._is_top_k(-row, k)
 
     @staticmethod
     def _ranking_df(signal:pd.DataFrame, k:int) -> pd.DataFrame:
         tasks = ( (signal.loc[i, :].dropna(), k) for i in signal.index )
         with mp.Pool(Operator.n_jobs) as pool:
             results = pool.starmap(Operator._ranking_row, tasks)
-        return pd.concat([res for res in results], axis = 1)
+        return pd.DataFrame([res for res in results], columns = signal.columns)
 
     @staticmethod
     def ranking(
@@ -120,10 +124,16 @@ class Operator:
         Compute the cross-sectional rank of the signal df. 
         Augments the dimensionality of the signal df by one level. 
         """
-        return pd.concat({
+        new_signal = pd.concat({
             f'{k}': Operator._ranking_df(signal.ffill(), k)
             for k in k_values
-        }, axis = 1).reorder_levels(list(range(1, signal.columns.nlevels)) + [0], axis=1)
+        }, axis = 1)
+        
+        new_signal = new_signal.reorder_levels(
+            list(range(1, signal.columns.nlevels+1)) + [0], 
+        axis=1).sort_index(axis=1)
+
+        return new_signal
 
     ############ Markovitz
 
