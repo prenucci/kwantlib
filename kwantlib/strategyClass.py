@@ -12,6 +12,7 @@ from .tskl_operators import tskl_Operator
 
 class Strategy:
 
+    risk = 25e3
     fee_per_transaction:float = 0
 
     def __init__(
@@ -103,6 +104,14 @@ class Strategy:
         return pnl
     
     @staticmethod
+    def compute_drawdown(pnl:pd.DataFrame) -> pd.DataFrame:
+        return ( pnl.cumsum().cummax() - pnl.cumsum() ) / pnl.std()
+
+    @property
+    def drawdown(self:'Strategy') -> pd.DataFrame:
+        return Strategy.compute_drawdown(self.pnl)
+    
+    @staticmethod
     def compute_cost(pos_change:pd.DataFrame, spread:pd.DataFrame, fee_per_transaction:float = 1e-2) -> pd.DataFrame:
         def _cost(pos_change:pd.Series, spread:pd.Series) -> pd.Series:
             spread = spread.reindex(pos_change.index).ffill().fillna(0)
@@ -170,7 +179,7 @@ class Strategy:
     def compute_maxdrawdown(pnl:pd.DataFrame) -> pd.Series:
         if hasattr(pnl.index, 'date'):
             pnl = pnl.groupby(pnl.index.date).sum()
-        return ( pnl.cumsum().cummax() - pnl.cumsum() ).max() / pnl.std()
+        return Strategy.compute_drawdown(pnl).max()
     
     @staticmethod
     def compute_metrics(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.DataFrame | pd.Series:
@@ -241,8 +250,9 @@ class Strategy:
         pos_total = pos.abs().sum(1).to_frame('overall')
         pos_change_total = pos_change.sum(1).to_frame('overall')
         print(Strategy.compute_metrics(pos_total, pnl_total, pos_change_total))
-        Utilitaires.plotx( pnl_total.cumsum() / pnl_total.std() ).show()
-        Utilitaires.plotx( pnl.cumsum() / pnl.std() ).show()
+        Utilitaires.plotx( Strategy.risk * pnl_total.cumsum() / pnl_total.std() ).show()
+        Utilitaires.plotx( Strategy.risk * Strategy.compute_drawdown(pnl_total) ).show()
+        Utilitaires.plotx( Strategy.risk * pnl.cumsum() / pnl.std() ).show()
         return Strategy.compute_metrics(pos, pnl)
 
     def show(self:'Strategy', training_date:str=None) -> pd.DataFrame:
