@@ -198,6 +198,7 @@ class Operator:
             case 'cross asset':
                 return Operator._markovitz(pnl, l2_reg, method, freq_retraining)
             case 'per asset':
+                assert isinstance(pnl.columns, pd.MultiIndex), 'pnl should have multiple levels to be train per asset'
                 return pd.concat({
                     col: Operator._markovitz(pnl.loc[:, col].dropna(), l2_reg, method, freq_retraining)
                     for col in pnl.columns.get_level_values(0).unique()
@@ -318,7 +319,7 @@ class Operator:
 
 def monkey_patch_operator(): 
     pd.Series.cross_moving_average = Operator.cross_moving_average
-    
+
     pd.DataFrame.cross_moving_average = Operator.cross_moving_average
     pd.DataFrame.proj = Operator.proj
     pd.DataFrame.vote = Operator.vote
