@@ -182,7 +182,7 @@ class Strategy:
         return Strategy.compute_drawdown(pnl).min()
     
     @staticmethod
-    def compute_metrics(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.DataFrame | pd.Series:
+    def compute_metrics(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.DataFrame:
         
         if pos_change is None:
             pos_change = pos.diff().abs() 
