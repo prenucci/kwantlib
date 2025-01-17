@@ -166,10 +166,13 @@ class Operator:
         ) -> pd.DataFrame:
         training_dates = [pnl.index[i] for i in range(freq_retraining, len(pnl), freq_retraining)]
 
-        markovitz_func = {  
-            'maxsharpe': Operator._markovitz_maxsharpe,
-            'minvol': Operator._markovitz_minvol,
-        }[method]
+        match method:
+            case 'maxsharpe':
+                markovitz_func = Operator._markovitz_maxsharpe
+            case 'minvol':
+                markovitz_func = Operator._markovitz_minvol
+            case _:
+                raise ValueError(f"method should be in ['maxsharpe', 'minvol'] not {method}")
 
         tasks = ( (pnl.loc[ pnl.index < training_date_index, :], l2_reg) for training_date_index in training_dates )
         
