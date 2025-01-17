@@ -187,7 +187,7 @@ class Strategy:
         if pos_change is None:
             pos_change = pos.diff().abs() 
 
-        metric = {
+        metric_dict = {
             'ftrading': Strategy.compute_ftrading(pos),
             'turnover': Strategy.compute_turnover(pos, pos_change),
             'pnl_per_trade': Strategy.compute_pnl_per_trade(pnl, pos_change),
@@ -196,11 +196,13 @@ class Strategy:
             'r_sharpe': Strategy.compute_sharpe(pnl.fillna(0).rolling(252).mean()),
             'maxdrawdown': Strategy.compute_maxdrawdown(pnl)
         }
-        return (
-            pd.concat(metric, axis=1).sort_values(by='eff_sharpe', ascending=False, axis=0) 
+        metric_pd = (
+            pd.concat(metric_dict, axis=1).sort_values(by='eff_sharpe', ascending=False, axis=0)
             if isinstance(pos, pd.DataFrame) 
-            else pd.Series(metric)
+            else pd.Series(metric_dict).to_frame('overall').T
             )
+        return metric_pd.dropna(how='all', axis=0)
+
     
     def ftrading(self:'Strategy', training_date:str = None) -> pd.Series:
         pos = self.position.loc[:, training_date:]
