@@ -187,7 +187,7 @@ class Operator:
             pnl:pd.DataFrame, l2_reg:float = 0.5, 
             level:Literal['cross asset', 'per asset'] = 'per asset', 
             method:Literal['maxsharpe', 'minvol'] = 'maxsharpe', 
-            freq_retraining:int = 1, 
+            freq_retraining:int = 50, 
         ) -> pd.DataFrame:  
         """ 
         Markovitz weights trained in expanding window for a given frequency of retraining
@@ -318,6 +318,7 @@ class Operator:
 
 def monkey_patch_operator(): 
     pd.Series.cross_moving_average = Operator.cross_moving_average
+    
     pd.DataFrame.cross_moving_average = Operator.cross_moving_average
     pd.DataFrame.proj = Operator.proj
     pd.DataFrame.vote = Operator.vote

@@ -46,27 +46,33 @@ class Utilitaires:
         if hasattr(df.index, 'date'):
             df_day = df.groupby(df.index.date).sum()
         return Utilitaires.plotx(df_day)
+    
+    def _zscore_ds(ds:pd.Series, method:Literal['expanding', 'rolling', 'ewm'] = 'expanding', lookback:int = 252) -> pd.Series:
+        match method:
+            case 'expanding':
+                return (ds - ds.expanding().mean()) / ds.expanding().std()
+            case 'rolling':
+                return (ds - ds.rolling(lookback).mean()) / ds.rolling(lookback).std()
+            case 'ewm':
+                return (ds - ds.ewm(lookback).mean()) / ds.ewm(lookback).std()
+            case _:
+                raise ValueError(f"method should be in ['expanding', 'rolling', 'ewm'] not {method}")
+
 
     @staticmethod
     def zscore(
         df: pd.DataFrame | pd.Series, 
         method: Literal['expanding', 'rolling', 'ewm'] = 'expanding', 
-        lookback: int = 252
+        lookback: int = 252, skipna: bool = True
     ) -> pd.DataFrame | pd.Series: 
-
-        window = {
-            'expanding': lambda x: x.expanding(),
-            'rolling': lambda x: x.rolling(lookback),
-            'ewm': lambda x: x.ewm(lookback)
-        }[method]
-
+        
         match type(df):
             case pd.Series:
-                zscore = (df - window(df.dropna()).mean()) / window(df.dropna()).std()
+                zscore = Utilitaires._zscore_ds(df.dropna() if skipna else df, method, lookback)
             case pd.DataFrame:
-                zscore = df.apply(lambda x: (x - window(x.dropna()).mean()) / window(x.dropna()).std())
+                zscore = df.apply(lambda x: Utilitaires._zscore_ds(x.dropna() if skipna else x, method, lookback))
             case _:
-                raise TypeError
+                raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")
         
         return zscore.reindex(df.index).ffill()
     
@@ -82,6 +88,6 @@ def monkey_patch_utilitaires():
 
     pd.DataFrame.plotxd = Utilitaires.plotxd
     pd.Series.plotxd = Utilitaires.plotxd
-    
+
     pd.Series.zscore = Utilitaires.zscore
     pd.DataFrame.zscore = Utilitaires.zscore
