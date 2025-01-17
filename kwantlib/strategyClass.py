@@ -7,7 +7,6 @@ from .utilitaires import Utilitaires
 from .operators import Operator
 from .tskl_operators import tskl_Operator
 
-from sklearn.linear_model import ElasticNet
 
 ############ Strategy Class
 
@@ -300,21 +299,21 @@ class Strategy:
     #### ML
 
     def forecast(
-        self:'Strategy', model:object = ElasticNet(), lookahead_steps:int = 0, *args, **kwargs
+        self:'Strategy', lookahead_steps:int = 0, *args, **kwargs
     ) -> 'Strategy':
 
         target = self.returns.shift(-lookahead_steps)
         features = self.signal
         return self._reinit(
-            signal = tskl_Operator.infer(target, features, model, lookahead_steps = lookahead_steps, *args, **kwargs)
+            signal = tskl_Operator.infer(target, features, lookahead_steps = lookahead_steps, *args, **kwargs)
         )
 
     def residual(
-        self:'Strategy', model:object = ElasticNet(), *args, **kwargs
+        self:'Strategy', *args, **kwargs
     ) -> 'Strategy':
         target = self.returns
         features = self.signal
-        residual_ = target - tskl_Operator.infer(target, features, model, *args, **kwargs)
+        residual_ = target - tskl_Operator.infer(target, features, *args, **kwargs)
         return self._reinit(signal = residual_.apply(lambda x: x.dropna().cumsum()))
     
     def cluster(self:'Strategy', *args, **kwargs) -> 'Strategy':

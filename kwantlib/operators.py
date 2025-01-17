@@ -4,8 +4,6 @@ import multiprocessing as mp
 from scipy.optimize import minimize
 from typing import Iterable, List, Literal
 
-############ Operators
-
 class Operator:
 
     n_jobs = mp.cpu_count() - 2
@@ -95,7 +93,6 @@ class Operator:
             case _:
                 raise ValueError(f"signal should be a pd.Series or pd.DataFrame not {type(signal)}")
 
-    @staticmethod
     @staticmethod
     def _is_top_k(row:pd.Series, k:int) -> pd.DataFrame:
         threshold = row.nlargest(k).iloc[-1]

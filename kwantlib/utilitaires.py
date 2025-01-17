@@ -2,8 +2,6 @@ import pandas as pd
 import plotly.express as px 
 from typing import Literal
 
-############ Monkeypatch pandas 
-
 class Utilitaires:
 
     @staticmethod
