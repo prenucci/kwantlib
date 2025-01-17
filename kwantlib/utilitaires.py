@@ -47,6 +47,7 @@ class Utilitaires:
             df_day = df.groupby(df.index.date).sum()
         return Utilitaires.plotx(df_day)
     
+    @staticmethod
     def _zscore_ds(ds:pd.Series, method:Literal['expanding', 'rolling', 'ewm'] = 'expanding', lookback:int = 252) -> pd.Series:
         match method:
             case 'expanding':
@@ -57,7 +58,6 @@ class Utilitaires:
                 return (ds - ds.ewm(lookback).mean()) / ds.ewm(lookback).std()
             case _:
                 raise ValueError(f"method should be in ['expanding', 'rolling', 'ewm'] not {method}")
-
 
     @staticmethod
     def zscore(
