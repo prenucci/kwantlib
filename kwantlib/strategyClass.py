@@ -47,22 +47,19 @@ class Strategy:
         return self._reinit(
             returns= self.returns.loc[:, [x for x in self.returns.columns if x in to_keep_list]]
             )
-    
-    #### Properties
-    
+        
     @property
     def volatility(self: 'Strategy') -> pd.DataFrame:
         vol = self.returns.apply( 
             lambda x: x.dropna().rolling(15).std() 
             )
-        return vol.reindex(self.returns.index).ffill()
+        return vol
     
     @staticmethod 
     def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame, is_vol_target:bool = True) -> pd.DataFrame:
         signal = signal.reindex(volatility.index, method='ffill')
         pos = signal.div(volatility, axis = 0, level = 0) if is_vol_target else signal  
-        zscore = ( pos - pos.expanding().mean() ) / pos.expanding().std()
-        pos = pos.where(zscore.abs() < 5, np.nan).ffill()
+        pos = pos.where(Utilitaires.zscore(pos).abs() < 5, np.nan).replace([np.inf, -np.inf], np.nan)
         return pd.concat([ 
             pos.loc[:, [col]].reindex(
                 volatility.loc[:, col].dropna().index, method='ffill'
