@@ -12,7 +12,7 @@ from .tskl_operators import tskl_Operator
 
 class Strategy:
 
-    risk = 25e3
+    risk = 1
     fee_per_transaction:float = 0
 
     def __init__(
