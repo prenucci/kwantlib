@@ -30,7 +30,7 @@ class Strategy:
             assert self.spread.index.equals(self.returns.index), 'spread and returns must have the same index'
             assert self.spread.columns.equals(self.returns.columns), 'spread and returns must have the same columns'
         else:  
-            self.spread = None
+            self.spread = pd.DataFrame(index = self.returns.index, columns = self.returns.columns)
 
         self.is_vol_target = is_vol_target
     
