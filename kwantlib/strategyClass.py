@@ -50,14 +50,9 @@ class Strategy:
         return self._reinit(
             returns= self.returns.loc[:, [x for x in self.returns.columns if x in to_keep_list]]
             )
-        
-    @property
-    def volatility(self: 'Strategy') -> pd.DataFrame:
-        vol = self.returns.apply( 
-            lambda x: x.dropna().rolling(15).std() 
-            )
-        return vol
     
+    #### Properties
+        
     @staticmethod 
     def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame, is_vol_target:bool = True) -> pd.DataFrame:
         signal = signal.reindex(volatility.index, method='ffill')
@@ -69,14 +64,6 @@ class Strategy:
             ) # nécessaire pour pas modifier la pos les jours ou l'exchange est close
             for col in volatility.columns
         ], axis = 1).ffill()
-    
-    @property
-    def position(self: 'Strategy') -> pd.DataFrame:
-        return Strategy.compute_position(
-            signal = self.signal,
-            volatility = self.volatility,
-            is_vol_target = self.is_vol_target
-        )
     
     @staticmethod
     def compute_pnl(position:pd.DataFrame, returns:pd.DataFrame) -> pd.DataFrame:
@@ -95,21 +82,9 @@ class Strategy:
 
         return pnl
     
-    @property
-    def pnl(self: 'Strategy') -> pd.DataFrame:
-        pnl = Strategy.compute_pnl(
-                position = self.position,
-                returns = self.returns
-            )
-        return pnl
-    
     @staticmethod
     def compute_drawdown(pnl:pd.DataFrame) -> pd.DataFrame:
         return - ( pnl.cumsum().cummax() - pnl.cumsum() ) / pnl.std()
-
-    @property
-    def drawdown(self:'Strategy') -> pd.DataFrame:
-        return Strategy.compute_drawdown(self.pnl)
     
     @staticmethod
     def compute_cost(pos_change:pd.DataFrame, spread:pd.DataFrame, fee_per_transaction:float = 1e-2) -> pd.DataFrame:
@@ -119,6 +94,33 @@ class Strategy:
         return pd.concat([
             _cost(pos_change.loc[:, col], spread.loc[:, col]) for col in pos_change.columns
         ], axis = 1)
+    
+    @property
+    def volatility(self: 'Strategy') -> pd.DataFrame:
+        vol = self.returns.apply( 
+            lambda x: x.dropna().rolling(15).std() 
+            )
+        return vol
+    
+    @property
+    def position(self: 'Strategy') -> pd.DataFrame:
+        return Strategy.compute_position(
+            signal = self.signal,
+            volatility = self.volatility,
+            is_vol_target = self.is_vol_target
+        )
+    
+    @property
+    def pnl(self: 'Strategy') -> pd.DataFrame:
+        pnl = Strategy.compute_pnl(
+                position = self.position,
+                returns = self.returns
+            )
+        return pnl
+
+    @property
+    def drawdown(self:'Strategy') -> pd.DataFrame:
+        return Strategy.compute_drawdown(self.pnl)
     
     @property
     def cost(self:'Strategy') -> pd.DataFrame:
@@ -144,6 +146,7 @@ class Strategy:
         return self.return_pnl.apply(lambda x: (1 + x).cumprod())
         
     ### Metrics
+
     @staticmethod
     def compute_ftrading(pos:pd.DataFrame) -> pd.Series:
         if hasattr(pos.index, 'date'):
@@ -202,7 +205,6 @@ class Strategy:
             else pd.Series(metric_dict).to_frame('overall').T
             )
         return metric_pd.dropna(how='all', axis=0)
-
     
     def ftrading(self:'Strategy', training_date:str = None) -> pd.Series:
         pos = self.position.loc[:, training_date:]
@@ -240,8 +242,9 @@ class Strategy:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
         pos_change = pos.diff().abs()
         return Strategy.compute_metrics(pos, pnl, pos_change)
-
+    
     ### Backtest
+
     @staticmethod
     def backtest(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None, cost:pd.DataFrame = None) -> pd.DataFrame:   
         if pos_change is None:
@@ -286,8 +289,6 @@ class Strategy:
     def ranking(self:'Strategy', *args, **kwargs) -> 'Strategy':
         return self.apply(Operator.ranking, *args, **kwargs)
     
-    ### weighting
-
     def markovitz(
         self:'Strategy', method:Literal['minvol', 'maxsharpe'] = 'maxsharpe', level:Literal['cross asset', 'per asset'] = 'cross asset'
     ) -> 'Strategy':
@@ -299,17 +300,15 @@ class Strategy:
         pnl = self.pnl.shift(1)
         w = pnl.apply(lambda x: x.dropna().expanding().std())
         return self._reinit(signal = self.signal.div(w))
-
-    ### Cutoffs
     
     def low_sharpe_cutoff(self:'Strategy', threshold:float = 0.3) -> 'Strategy':
         def _sharpe(pnl:pd.Series) -> pd.Series:
             return 16 * pnl.dropna().expanding().mean() / pnl.dropna().expanding().std()
-        sharpe = self.pnl.shift(1).apply(_sharpe) < threshold
-        return self._reinit(signal = self.signal.where(sharpe, 0))
+        sharpe = self.pnl.shift(1).apply(_sharpe) 
+        return self._reinit(signal = self.signal.where(sharpe < threshold, 0))
     
-    #### ML
-
+    ### tskl_operators
+    
     def forecast(
         self:'Strategy', lookahead_steps:int = 0, *args, **kwargs
     ) -> 'Strategy':
