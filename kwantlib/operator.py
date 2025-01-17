@@ -232,6 +232,17 @@ class Operator:
         """
         raise NotImplementedError('cluster')
         return 
+    
+def monkey_patch_operator(): 
+    pd.Series.cross_moving_average = Operator.cross_moving_average
+
+    pd.DataFrame.cross_moving_average = Operator.cross_moving_average
+    pd.DataFrame.proj = Operator.proj
+    pd.DataFrame.vote = Operator.vote
+    pd.DataFrame.ranking = Operator.ranking
+    pd.DataFrame.markovitz = Operator.markovitz
+    pd.DataFrame.infer = Operator.infer
+    pd.DataFrame.cluster = Operator.cluster
 
     # ##############################
     # ##### Other stuff (useless ?)
@@ -317,14 +328,3 @@ class Operator:
     #         result += (ds.dropna() > quantile)
         
     #     return result - (n_bags - 1) / 2              
-
-def monkey_patch_operator(): 
-    pd.Series.cross_moving_average = Operator.cross_moving_average
-
-    pd.DataFrame.cross_moving_average = Operator.cross_moving_average
-    pd.DataFrame.proj = Operator.proj
-    pd.DataFrame.vote = Operator.vote
-    pd.DataFrame.ranking = Operator.ranking
-    pd.DataFrame.markovitz = Operator.markovitz
-    pd.DataFrame.infer = Operator.infer
-    pd.DataFrame.cluster = Operator.cluster
