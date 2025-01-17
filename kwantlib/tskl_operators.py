@@ -5,7 +5,6 @@ try:
     from tskit_learn.timeseriesmodel import ExpandingModel
 
     class tskl_Operator:
-        
         @staticmethod   
         def infer(
             target: pd.DataFrame | pd.Series, features:pd.DataFrame, 
