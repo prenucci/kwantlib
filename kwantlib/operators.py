@@ -2,11 +2,7 @@ import pandas as pd
 import numpy  as np 
 import multiprocessing as mp 
 from scipy.optimize import minimize
-
 from typing import Iterable, List, Literal
-
-from sklearn.linear_model import ElasticNet
-from tskit_learn.timeseriesmodel import ExpandingModel
 
 ############ Operators
 
@@ -143,7 +139,7 @@ class Operator:
         try :
             n = len(pnl_train.columns) 
             mu = pnl_train.mean().to_numpy() 
-            sigma = LedoitWolf().fit(pnl_train.dropna())._covariance + l2_reg * np.eye(n)
+            sigma = pnl_train.cov().to_numpy() + l2_reg * np.eye(n)
             def objective(beta:np.ndarray) -> np.ndarray:
                 return - (beta @ mu) + beta @ sigma @ beta
             constraint =  ({'type': 'ineq', 'fun': lambda beta: np.sum(beta) - 1})
@@ -221,31 +217,8 @@ class Operator:
 
     ############ ML
 
-    @staticmethod   
-    def infer(
-        target: pd.DataFrame | pd.Series,
-        features:pd.DataFrame, 
-        model:object = ElasticNet(),
-        train_every_n_steps:int = 30, 
-        lookahead_steps:int = 0,
-    ) -> pd.DataFrame:
-        """ 
-        Infer the target from the features using a model trained in expanding window for a given frequency of retraining
-        """
-        assert hasattr(model, 'fit') and hasattr(model, 'predict'), 'model should have fit and predict methods'
-        assert isinstance(target, pd.DataFrame) or isinstance(target, pd.Series), 'target should be a pd.DataFrame or pd.Series'
-        model_ts = ExpandingModel(model, train_every_n_steps, None, lookahead_steps)
-        return model_ts.fit_predict(features, target.shift(lookahead_steps), skipna=True)
-
-    @staticmethod   
-    def cluster(signal:pd.DataFrame) -> pd.DataFrame: 
-        """ 
-        Cluster the signal df using a clustering algorithm
-        """
-        raise NotImplementedError('cluster')
-        return 
     
-def monkey_patch_operator(): 
+def monkey_patch_operators(): 
     pd.Series.cross_moving_average = Operator.cross_moving_average
 
     pd.DataFrame.cross_moving_average = Operator.cross_moving_average
@@ -253,8 +226,6 @@ def monkey_patch_operator():
     pd.DataFrame.vote = Operator.vote
     pd.DataFrame.ranking = Operator.ranking
     pd.DataFrame.markovitz = Operator.markovitz
-    pd.DataFrame.infer = Operator.infer
-    pd.DataFrame.cluster = Operator.cluster
 
     # ##############################
     # ##### Other stuff (useless ?)

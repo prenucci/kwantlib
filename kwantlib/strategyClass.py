@@ -4,7 +4,8 @@ import numpy  as np
 from typing import Iterable, Callable, Literal, Any
 
 from .utilitaires import Utilitaires
-from .operator import Operator
+from .operators import Operator
+from .tskl_operators import tskl_Operator
 
 from sklearn.linear_model import ElasticNet
 
@@ -305,7 +306,7 @@ class Strategy:
         target = self.returns.shift(-lookahead_steps)
         features = self.signal
         return self._reinit(
-            signal = Operator.infer(target, features, model, lookahead_steps = lookahead_steps, *args, **kwargs)
+            signal = tskl_Operator.infer(target, features, model, lookahead_steps = lookahead_steps, *args, **kwargs)
         )
 
     def residual(
@@ -313,7 +314,7 @@ class Strategy:
     ) -> 'Strategy':
         target = self.returns
         features = self.signal
-        residual_ = target - Operator.infer(target, features, model, *args, **kwargs)
+        residual_ = target - tskl_Operator.infer(target, features, model, *args, **kwargs)
         return self._reinit(signal = residual_.apply(lambda x: x.dropna().cumsum()))
     
     def cluster(self:'Strategy', *args, **kwargs) -> 'Strategy':
