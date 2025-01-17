@@ -16,7 +16,7 @@ try:
             """
             assert hasattr(model, 'fit') and hasattr(model, 'predict'), 'model should have fit and predict methods'
             assert isinstance(target, pd.DataFrame) or isinstance(target, pd.Series), 'target should be a pd.DataFrame or pd.Series'
-            model_ts = ExpandingModel(model, train_every_n_steps, None, lookahead_steps)
+            model_ts = ExpandingModel(model, train_every_n_steps, train_every_n_steps, lookahead_steps)
             return model_ts.fit_predict(features, target.shift(lookahead_steps), skipna=True)
 
         @staticmethod   
