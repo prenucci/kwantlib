@@ -5,7 +5,6 @@ from scipy.optimize import minimize
 
 from typing import Iterable, List, Literal
 
-from sklearn.covariance import LedoitWolf
 from sklearn.linear_model import ElasticNet
 from tskit_learn.timeseriesmodel import ExpandingModel
 
@@ -146,13 +145,15 @@ class Operator:
             print(f'error in markovitz_minvol {e}')
             weights = 0
         return pd.Series(weights, index = pnl_train.columns).fillna(0)
-    
+
     @staticmethod
     def _markovitz_maxsharpe(pnl_train:pd.DataFrame, l2_reg:float) -> pd.Series:
+        assert not pnl_train.dropna().empty, 'pnl_train is empty'
         try :
             n = len(pnl_train.columns) 
             mu = pnl_train.mean().to_numpy() 
-            sigma = LedoitWolf().fit(pnl_train.dropna())._covariance + l2_reg * np.eye(n)
+            # sigma = LedoitWolf().fit(pnl_train.dropna())._covariance + l2_reg * np.eye(n)
+            sigma = pnl_train.cov().to_numpy() + l2_reg * np.eye(n)
             weights = np.linalg.solve(sigma, mu)
         except ValueError as e: 
             print(f'error in markovitz_maxsharpe {e}')
@@ -165,6 +166,7 @@ class Operator:
             method:Literal['maxsharpe', 'minvol'], 
             freq_retraining:int
         ) -> pd.DataFrame:
+        
         training_dates = [pnl.index[i] for i in range(min(10, freq_retraining), len(pnl), freq_retraining)]
 
         match method:
@@ -175,14 +177,14 @@ class Operator:
             case _:
                 raise ValueError(f"method should be in ['maxsharpe', 'minvol'] not {method}")
 
-        tasks = ( (pnl.loc[ pnl.index < training_date, :], l2_reg) for training_date in training_dates )
+        tasks = ( (pnl.loc[ pnl.index < training_date, :].fillna(0), l2_reg) for training_date in training_dates )
         
         with mp.Pool(Operator.n_jobs) as pool:
             results = pool.starmap(markovitz_func, tasks)
         weights = pd.DataFrame(results, index = training_dates)
         
         return weights.reindex(pnl.index, method = 'ffill').fillna(0)
-    
+
     @staticmethod   
     def markovitz(
             pnl:pd.DataFrame, l2_reg:float = 0.5, 
