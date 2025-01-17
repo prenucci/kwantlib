@@ -123,7 +123,7 @@ class Operator:
         return pd.concat({
             f'{k}': Operator._ranking_df(signal.ffill(), k)
             for k in k_values
-        }, axis = 1).reorder_levels(list(range(1, signal.columns.nlevels)) + [0])
+        }, axis = 1).reorder_levels(list(range(1, signal.columns.nlevels)) + [0], axis=1)
 
     ############ Markovitz
 
