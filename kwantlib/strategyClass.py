@@ -249,13 +249,13 @@ class Strategy:
         pnl = self.pnl.fillna(0).loc[training_date:, :]
         pos = self.position.abs()
         pos_change = self.position.diff().abs()
-        if hasattr(self, 'spread'):
+        if hasattr(self, 'spread') and self.spread is not None:
             cost = self.cost.loc[training_date:, :]
         if hasattr(pos.index, 'date'):
             pos = pos.groupby(pos.index.date).mean()
             pos_change = pos_change.groupby(pos_change.index.date).sum()
             pnl = pnl.groupby(pnl.index.date).sum()
-        return Strategy.backtest(pos, pnl, pos_change, cost if hasattr(self, 'spread') else None)
+        return Strategy.backtest(pos, pnl, pos_change, cost if hasattr(self, 'spread') and self.spread is not None else None)
 
     ### Operators
 
