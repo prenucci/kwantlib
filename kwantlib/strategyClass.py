@@ -55,9 +55,9 @@ class Strategy:
         
     @staticmethod 
     def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame, is_vol_target:bool = True) -> pd.DataFrame:
-        signal = signal.reindex(volatility.index, method='ffill')
+        signal = signal.replace([np.inf, -np.inf], np.nan).reindex(volatility.index, method='ffill')
         pos = signal.div(volatility, axis = 0, level = 0) if is_vol_target else signal  
-        pos = pos.where(Utilitaires.zscore(pos).abs() < 5, np.nan).replace([np.inf, -np.inf], np.nan)
+        pos = pos.where(Utilitaires.zscore(pos).abs() < 5, np.nan)
         return pd.concat([ 
             pos.loc[:, [col]].reindex(
                 volatility.loc[:, col].dropna().index, method='ffill'
@@ -105,18 +105,12 @@ class Strategy:
     @property
     def position(self: 'Strategy') -> pd.DataFrame:
         return Strategy.compute_position(
-            signal = self.signal,
-            volatility = self.volatility,
-            is_vol_target = self.is_vol_target
+            self.signal, self.volatility, self.is_vol_target
         )
     
     @property
     def pnl(self: 'Strategy') -> pd.DataFrame:
-        pnl = Strategy.compute_pnl(
-                position = self.position,
-                returns = self.returns
-            )
-        return pnl
+        return Strategy.compute_pnl(self.position, self.returns)
 
     @property
     def drawdown(self:'Strategy') -> pd.DataFrame:
@@ -124,7 +118,7 @@ class Strategy:
     
     @property
     def cost(self:'Strategy') -> pd.DataFrame:
-        assert hasattr(self, 'spread'), 'you need to have a spread to compute the cost'
+        assert self.spreand is not None, 'you need to have a spread to compute the cost'
         return Strategy.compute_cost(
             pos_change = self.position.diff().abs(),
             spread = self.spread,
@@ -139,7 +133,7 @@ class Strategy:
     def return_pnl(self:'Strategy') -> pd.Series:
         pnl = self.pnl.fillna(0).sum(1)
         pos_abs = self.position.abs().sum(1)
-        return pnl.div(pos_abs.ffill().shift(1)).fillna(0)
+        return pnl.div( pos_abs.shift(1) ).fillna(0)
     
     @property
     def compounded_value(self:'Strategy') -> pd.Series:
