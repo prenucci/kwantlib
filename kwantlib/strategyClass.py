@@ -105,7 +105,7 @@ class Strategy:
     
     @staticmethod
     def compute_drawdown(pnl:pd.DataFrame) -> pd.DataFrame:
-        return ( pnl.cumsum().cummax() - pnl.cumsum() ) / pnl.std()
+        return - ( pnl.cumsum().cummax() - pnl.cumsum() ) / pnl.std()
 
     @property
     def drawdown(self:'Strategy') -> pd.DataFrame:
@@ -179,7 +179,7 @@ class Strategy:
     def compute_maxdrawdown(pnl:pd.DataFrame) -> pd.Series:
         if hasattr(pnl.index, 'date'):
             pnl = pnl.groupby(pnl.index.date).sum()
-        return Strategy.compute_drawdown(pnl).max()
+        return Strategy.compute_drawdown(pnl).min()
     
     @staticmethod
     def compute_metrics(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.DataFrame | pd.Series:
@@ -250,9 +250,9 @@ class Strategy:
         pos_total = pos.abs().sum(1).to_frame('overall')
         pos_change_total = pos_change.sum(1).to_frame('overall')
         print(Strategy.compute_metrics(pos_total, pnl_total, pos_change_total))
-        Utilitaires.plotx( Strategy.risk * pnl_total.cumsum() / pnl_total.std() ).show()
-        Utilitaires.plotx( Strategy.risk * Strategy.compute_drawdown(pnl_total) ).show()
-        Utilitaires.plotx( Strategy.risk * pnl.cumsum() / pnl.std() ).show()
+        Utilitaires.plotx( Strategy.risk * pnl_total.cumsum() / pnl_total.std(), title='pnl total' ).show()
+        Utilitaires.plotx( Strategy.risk * Strategy.compute_drawdown(pnl_total), title='drawdown' ).show()
+        Utilitaires.plotx( Strategy.risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
         return Strategy.compute_metrics(pos, pnl)
 
     def show(self:'Strategy', training_date:str=None) -> pd.DataFrame:

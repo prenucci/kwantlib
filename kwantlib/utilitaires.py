@@ -30,24 +30,24 @@ class Utilitaires:
         return df_
 
     @staticmethod
-    def plotx(df:pd.Series | pd.DataFrame):
+    def plotx(df:pd.Series | pd.DataFrame, title:str = None):
         match type(df):
             case pd.Series:
-                return px.line(df)
+                return px.line(df, title=title)
             case pd.DataFrame:
-                return px.line(Utilitaires.flatten_columns(df))
+                return px.line(Utilitaires.flatten_columns(df), title=title)
             case _:
                 raise TypeError
     
     @staticmethod
-    def plotxd(df:pd.Series | pd.DataFrame):
+    def plotxd(df:pd.Series | pd.DataFrame, title:str = None):
         match type(df):
             case pd.Series: 
                 if hasattr(df.index, 'date'):
                     df_day = df.groupby(df.index.date).sum()
                 return Utilitaires.plotx(df_day)
             case pd.DataFrame:
-                return Utilitaires.plotx(df)
+                return Utilitaires.plotx(df, title=title)
             case _:
                 raise TypeError
     
