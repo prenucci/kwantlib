@@ -118,7 +118,7 @@ class Strategy:
     
     @property
     def cost(self:'Strategy') -> pd.DataFrame:
-        assert self.spreand is not None, 'you need to have a spread to compute the cost'
+        assert self.spread is not None, 'you need to have a spread to compute the cost'
         return Strategy.compute_cost(
             pos_change = self.position.diff().abs(),
             spread = self.spread,
