@@ -130,6 +130,7 @@ class Operator:
 
     @staticmethod
     def _markovitz_minvol(pnl_train:pd.DataFrame, l2_reg:float) -> pd.Series:
+        raise NotImplementedError('markovitz_minvol')
         try :
             n = len(pnl_train.columns) 
             mu = pnl_train.mean().to_numpy() 
@@ -164,7 +165,7 @@ class Operator:
             method:Literal['maxsharpe', 'minvol'], 
             freq_retraining:int
         ) -> pd.DataFrame:
-        training_dates = [pnl.index[i] for i in range(freq_retraining, len(pnl), freq_retraining)]
+        training_dates = [pnl.index[i] for i in range(min(10, freq_retraining), len(pnl), freq_retraining)]
 
         match method:
             case 'maxsharpe':
@@ -174,7 +175,7 @@ class Operator:
             case _:
                 raise ValueError(f"method should be in ['maxsharpe', 'minvol'] not {method}")
 
-        tasks = ( (pnl.loc[ pnl.index < training_date_index, :], l2_reg) for training_date_index in training_dates )
+        tasks = ( (pnl.loc[ pnl.index < training_date, :], l2_reg) for training_date in training_dates )
         
         with mp.Pool(Operator.n_jobs) as pool:
             results = pool.starmap(markovitz_func, tasks)
