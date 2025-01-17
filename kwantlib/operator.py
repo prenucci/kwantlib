@@ -186,7 +186,7 @@ class Operator:
     @staticmethod   
     def markovitz(
             pnl:pd.DataFrame, l2_reg:float = 0.5, 
-            level:Literal['cross asset', 'per asset'] = 'per asset', 
+            level:Literal['cross asset', 'per asset'] = 'cross asset', 
             method:Literal['maxsharpe', 'minvol'] = 'maxsharpe', 
             freq_retraining:int = 50, 
         ) -> pd.DataFrame:  

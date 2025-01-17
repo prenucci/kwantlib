@@ -277,7 +277,7 @@ class Strategy:
     ### weighting
 
     def markovitz(
-        self:'Strategy', method:Literal['minvol', 'maxsharpe'] = 'minvol', level:Literal['cross asset', 'per asset'] = 'cross asset'
+        self:'Strategy', method:Literal['minvol', 'maxsharpe'] = 'maxsharpe', level:Literal['cross asset', 'per asset'] = 'cross asset'
     ) -> 'Strategy':
         pnl = self.pnl.shift(1)
         w = Operator.markovitz(pnl, method=method, level=level)
