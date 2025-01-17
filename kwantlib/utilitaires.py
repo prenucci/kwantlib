@@ -43,9 +43,15 @@ class Utilitaires:
     
     @staticmethod
     def plotxd(df:pd.Series | pd.DataFrame):
-        if hasattr(df.index, 'date'):
-            df_day = df.groupby(df.index.date).sum()
-        return Utilitaires.plotx(df_day)
+        match type(df):
+            case pd.Series: 
+                if hasattr(df.index, 'date'):
+                    df_day = df.groupby(df.index.date).sum()
+                return Utilitaires.plotx(df_day)
+            case pd.DataFrame:
+                return Utilitaires.plotx(df)
+            case _:
+                raise TypeError
     
     @staticmethod
     def _zscore_ds(ds:pd.Series, method:Literal['expanding', 'rolling', 'ewm'] = 'expanding', lookback:int = 252) -> pd.Series:
