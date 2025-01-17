@@ -1,9 +1,9 @@
 import pandas as pd 
 import numpy  as np 
 
-from typing import Iterable, Callable, Literal
+from typing import Iterable, Callable, Literal, Any
 
-from .pandasMonkeypatch import plotx
+from .utilitaires import Utilitaires
 from .operator import Operator
 
 from sklearn.linear_model import ElasticNet
@@ -242,8 +242,8 @@ class Strategy:
         pos_total = pos.abs().sum(1).to_frame('overall')
         pos_change_total = pos_change.sum(1).to_frame('overall')
         print(Strategy.compute_metrics(pos_total, pnl_total, pos_change_total))
-        plotx( pnl_total.cumsum() / pnl_total.std() ).show()
-        plotx( pnl.cumsum() / pnl.std() ).show()
+        Utilitaires.plotx( pnl_total.cumsum() / pnl_total.std() ).show()
+        Utilitaires.plotx( pnl.cumsum() / pnl.std() ).show()
         return Strategy.compute_metrics(pos, pnl)
 
     def show(self:'Strategy', training_date:str=None) -> pd.DataFrame:
@@ -260,7 +260,7 @@ class Strategy:
 
     ### Operators
 
-    def apply(self:'Strategy', func:Callable[[pd.DataFrame], pd.DataFrame], *args, **kwargs) -> 'Strategy':
+    def apply(self:'Strategy', func:Callable[[pd.DataFrame, Any], pd.DataFrame], *args, **kwargs) -> 'Strategy':
         return self._reinit(signal = func(self.signal, *args, **kwargs))
 
     def cross_moving_average(self:'Strategy', *args, **kwargs) -> 'Strategy':

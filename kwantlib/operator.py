@@ -65,14 +65,14 @@ class Operator:
     @staticmethod
     def _cross_moving_average_df(
             signal:pd.DataFrame, smooth_params:Iterable[int], lookback_params:Iterable[int], 
-            is_ewm:bool, skipna:bool, n_jobs:int,
+            is_ewm:bool, skipna:bool, 
         ) -> pd.DataFrame:
 
         tasks = ( 
             (signal.loc[:, col].dropna() if skipna else signal.loc[:, col], smooth_params, lookback_params, is_ewm) 
             for col in signal.columns
         )
-        with mp.Pool(n_jobs) as pool:
+        with mp.Pool(Operator.n_jobs) as pool:
             results = pool.starmap(Operator._cross_moving_average_ds, tasks)
             
         return pd.concat({
@@ -85,7 +85,6 @@ class Operator:
             smooth_params:Iterable[int] = (1, 2, 3, 4, 6, 8, 10,), 
             lookback_params:Iterable[int] = (2, 3, 4, 5, 6, 10, 12, 14, 17, 20, 28, 36, 44, 66,), 
             is_ewm:bool = False, skipna:bool = True,
-            n_jobs:int = None,
         ) -> pd.DataFrame: 
 
         """
@@ -93,14 +92,11 @@ class Operator:
         Augments the dimensionality of the signal df by two levels . 
         """
 
-        if n_jobs is None:
-            n_jobs = Operator.n_jobs_value
-
         match type(signal):
             case pd.Series:
                 return Operator._cross_moving_average_ds(signal, smooth_params, lookback_params, is_ewm)
             case pd.DataFrame:
-                return Operator._cross_moving_average_df(signal, smooth_params, lookback_params, is_ewm, skipna, n_jobs)
+                return Operator._cross_moving_average_df(signal, smooth_params, lookback_params, is_ewm, skipna)
             case _:
                 raise ValueError(f"signal should be a pd.Series or pd.DataFrame not {type(signal)}")
 
@@ -111,24 +107,22 @@ class Operator:
         return top_k_per_row.astype(int) - bottom_k_per_row.astype(int)
 
     @staticmethod
-    def _ranking_df(signal:pd.DataFrame, k:int, n_jobs:int) -> pd.DataFrame:
+    def _ranking_df(signal:pd.DataFrame, k:int) -> pd.DataFrame:
         tasks = ( (signal.loc[i, :].dropna(), k) for i in signal.index )
-        with mp.Pool(n_jobs) as pool:
+        with mp.Pool(Operator.n_jobs) as pool:
             results = pool.starmap(Operator._ranking_row, tasks)
         return pd.concat([res for res in results], axis = 1)
 
     @staticmethod
     def ranking(
-            signal:pd.DataFrame, k_values:Iterable[int] = (3, 5, 7,), n_jobs:int = None
+            signal:pd.DataFrame, k_values:Iterable[int] = (3, 5, 7,),
         ) -> pd.DataFrame: 
         """
         Compute the cross-sectional rank of the signal df. 
         Augments the dimensionality of the signal df by one level. 
         """
-        if n_jobs is None:
-            n_jobs = Operator.n_jobs_value
         return pd.concat({
-            f'{k}': Operator._ranking_df(signal.ffill(), k, n_jobs)
+            f'{k}': Operator._ranking_df(signal.ffill(), k)
             for k in k_values
         }, axis = 1).reorder_levels(list(range(1, signal.columns.nlevels)) + [0])
 
@@ -168,13 +162,8 @@ class Operator:
     def _markovitz(
             pnl:pd.DataFrame, l2_reg:float, 
             method:Literal['maxsharpe', 'minvol'], 
-            freq_retraining:int, n_jobs:int 
+            freq_retraining:int
         ) -> pd.DataFrame:
-        """ 
-        Markovitz weights trained in expanding window for a given frequency of retraining
-        Maxsharpe: maximize the sharpe ratio with the possibility to go short
-        Minvol: minimize the volatility of the portfolio with no possibility to go short
-        """
         training_dates = [pnl.index[i] for i in range(freq_retraining, len(pnl), freq_retraining)]
 
         markovitz_func = {  
@@ -184,7 +173,7 @@ class Operator:
 
         tasks = ( (pnl.loc[ pnl.index < training_date_index, :], l2_reg) for training_date_index in training_dates )
         
-        with mp.Pool(n_jobs) as pool:
+        with mp.Pool(Operator.n_jobs) as pool:
             results = pool.starmap(markovitz_func, tasks)
         weights = pd.DataFrame(results, index = training_dates)
         
@@ -195,18 +184,19 @@ class Operator:
             pnl:pd.DataFrame, l2_reg:float = 0.5, 
             level:Literal['cross asset', 'per asset'] = 'per asset', 
             method:Literal['maxsharpe', 'minvol'] = 'maxsharpe', 
-            freq_retraining:int = 1, n_jobs:int = None    
+            freq_retraining:int = 1, 
         ) -> pd.DataFrame:  
-
-        if n_jobs is None:
-            n_jobs = Operator.n_jobs_value
-
+        """ 
+        Markovitz weights trained in expanding window for a given frequency of retraining
+        Maxsharpe: maximize the sharpe ratio with the possibility to go short
+        Minvol: minimize the volatility of the portfolio with no possibility to go short
+        """
         match level:
             case 'cross asset':
-                return Operator._markovitz(pnl, l2_reg, method, freq_retraining, n_jobs)
+                return Operator._markovitz(pnl, l2_reg, method, freq_retraining)
             case 'per asset':
                 return pd.concat({
-                    col: Operator._markovitz(pnl.loc[:, col].dropna(), l2_reg, method, freq_retraining, n_jobs)
+                    col: Operator._markovitz(pnl.loc[:, col].dropna(), l2_reg, method, freq_retraining)
                     for col in pnl.columns.get_level_values(0).unique()
                 }, axis = 1)
             case _:
@@ -222,6 +212,9 @@ class Operator:
         train_every_n_steps:int = 30, 
         lookahead_steps:int = 0,
     ) -> pd.DataFrame:
+        """ 
+        Infer the target from the features using a model trained in expanding window for a given frequency of retraining
+        """
         assert hasattr(model, 'fit') and hasattr(model, 'predict'), 'model should have fit and predict methods'
         assert isinstance(target, pd.DataFrame) or isinstance(target, pd.Series), 'target should be a pd.DataFrame or pd.Series'
         model_ts = ExpandingModel(model, train_every_n_steps, None, lookahead_steps)
@@ -229,6 +222,9 @@ class Operator:
 
     @staticmethod   
     def cluster(signal:pd.DataFrame) -> pd.DataFrame: 
+        """ 
+        Cluster the signal df using a clustering algorithm
+        """
         raise NotImplementedError('cluster')
         return 
 
@@ -315,4 +311,14 @@ class Operator:
     #         quantile = ds.dropna().expanding().quantile(k/n_bags)
     #         result += (ds.dropna() > quantile)
         
-    #     return result - (n_bags - 1) / 2  
+    #     return result - (n_bags - 1) / 2              
+
+def monkey_patch_operator(): 
+    pd.Series.cross_moving_average = Operator.cross_moving_average
+    pd.DataFrame.cross_moving_average = Operator.cross_moving_average
+    pd.DataFrame.proj = Operator.proj
+    pd.DataFrame.vote = Operator.vote
+    pd.DataFrame.ranking = Operator.ranking
+    pd.DataFrame.markovitz = Operator.markovitz
+    pd.DataFrame.infer = Operator.infer
+    pd.DataFrame.cluster = Operator.cluster

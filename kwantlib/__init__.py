@@ -1,5 +1,5 @@
-from .pandasMonkeypatch import apply_pd_monkeypatch
+from .utilitaires import Utilitaires, monkey_patch_utilitaires
 from .operator import Operator
 from .strategyClass import Strategy
 
-__all__ = ['apply_pd_monkeypatch', 'Operator', 'Strategy']
+__all__ = ['Utilitaires', 'Operator', 'Strategy', 'monkey_patch_utilitaires', 'monkey_patch_operator']
