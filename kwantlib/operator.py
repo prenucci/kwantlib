@@ -13,7 +13,7 @@ from tskit_learn.timeseriesmodel import ExpandingModel
 
 class Operator:
 
-    n_jobs_value = mp.cpu_count() - 2
+    n_jobs = mp.cpu_count() - 2
 
     @staticmethod
     def proj(signal:pd.DataFrame, threshold:float=0, level:int | List[int] = 0) -> pd.DataFrame: 
