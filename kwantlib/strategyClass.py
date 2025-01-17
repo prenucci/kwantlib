@@ -294,6 +294,7 @@ class Strategy:
     ) -> 'Strategy':
         pnl = self.pnl.shift(1)
         w = Operator.markovitz(pnl, method=method, level=level)
+        w = w.reindex(self.signal.index, method='ffill')
         return self._reinit(signal = self.signal.multiply(w))
     
     def isorisk(self:'Strategy') -> 'Strategy':

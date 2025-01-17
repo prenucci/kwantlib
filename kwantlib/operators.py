@@ -132,22 +132,29 @@ class Operator:
 
     @staticmethod
     def _markovitz_minvol(pnl_train:pd.DataFrame, l2_reg:float) -> pd.Series:
-        raise NotImplementedError('markovitz_minvol')
-        try :
+        try:
             n = len(pnl_train.columns) 
-            mu = pnl_train.mean().to_numpy() 
-            sigma = pnl_train.cov().to_numpy() + l2_reg * np.eye(n)
-            def objective(beta:np.ndarray) -> np.ndarray:
-                return - (beta @ mu) + beta @ sigma @ beta
-            constraint =  ({'type': 'ineq', 'fun': lambda beta: np.sum(beta) - 1})
-            bounds = [(1e-10, None) for _ in range(len(mu))]  # Contraintes pour que beta soit strictement positif
-            initial_beta = np.ones(len(mu)) / len(mu)  # Initialisation des poids
-            result = minimize(objective, initial_beta, bounds=bounds, constraints=constraint)
-            return result.x
+            sigma = pnl_train.cov().to_numpy() 
+            def objective(beta:np.ndarray) -> float:
+                return beta @ sigma @ beta + l2_reg * beta @ beta 
+            constraints = [{'type': 'eq', 'fun': lambda beta: beta @ beta - 1} ]
+            bounds = [(0, None) for _ in range(n)] 
+            initial_beta = np.ones(n) / n  
+            
+            result = minimize(
+                objective, initial_beta, bounds=bounds, constraints=constraints,method='SLSQP'  
+            )
+            
+            if not result.success:
+                print(f"Optimization failed: {result.message}")
+                return pd.Series(index=pnl_train.columns)
+                
+            return pd.Series(result.x, index=pnl_train.columns)
+            
         except ValueError as e: 
             print(f'error in markovitz_minvol {e}')
-            weights = 0
-        return pd.Series(weights, index = pnl_train.columns).fillna(0)
+            return pd.Series(index=pnl_train.columns)
+
 
     @staticmethod
     def _markovitz_maxsharpe(pnl_train:pd.DataFrame, l2_reg:float) -> pd.Series:
@@ -155,7 +162,6 @@ class Operator:
         try :
             n = len(pnl_train.columns) 
             mu = pnl_train.mean().to_numpy() 
-            # sigma = LedoitWolf().fit(pnl_train.dropna())._covariance + l2_reg * np.eye(n)
             sigma = pnl_train.cov().to_numpy() + l2_reg * np.eye(n)
             weights = np.linalg.solve(sigma, mu)
         except ValueError as e: 
@@ -180,11 +186,14 @@ class Operator:
             case _:
                 raise ValueError(f"method should be in ['maxsharpe', 'minvol'] not {method}")
 
-        tasks = ( (pnl.loc[ pnl.index < training_date, :].fillna(0), l2_reg) for training_date in training_dates )
+        tasks = ( 
+            (pnl.loc[ pnl.index < training_date, :].fillna(0), l2_reg) 
+            for training_date in training_dates 
+        )
         
         with mp.Pool(Operator.n_jobs) as pool:
             results = pool.starmap(markovitz_func, tasks)
-        weights = pd.DataFrame(results, index = training_dates)
+        weights = pd.DataFrame(results, index = training_dates).ffill()
         
         return weights.reindex(pnl.index, method = 'ffill').fillna(0)
 
@@ -200,6 +209,9 @@ class Operator:
         Maxsharpe: maximize the sharpe ratio with the possibility to go short
         Minvol: minimize the volatility of the portfolio with no possibility to go short
         """
+        if hasattr(pnl.index, "date"):
+            pnl = pnl.fillna(0).groupby(pnl.index.date).sum()
+
         match level:
             case 'cross asset':
                 return Operator._markovitz(pnl, l2_reg, method, freq_retraining)
