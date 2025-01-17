@@ -40,6 +40,12 @@ class Utilitaires:
                 return px.line(Utilitaires.flatten_columns(df))
             case _:
                 raise TypeError
+    
+    @staticmethod
+    def plotxd(df:pd.Series | pd.DataFrame):
+        if hasattr(df.index, 'date'):
+            df_day = df.groupby(df.index.date).sum()
+        return Utilitaires.plotx(df_day)
 
     @staticmethod
     def zscore(
@@ -74,5 +80,8 @@ def monkey_patch_utilitaires():
     pd.DataFrame.plotx = Utilitaires.plotx
     pd.Series.plotx = Utilitaires.plotx
 
+    pd.DataFrame.plotxd = Utilitaires.plotxd
+    pd.Series.plotxd = Utilitaires.plotxd
+    
     pd.Series.zscore = Utilitaires.zscore
     pd.DataFrame.zscore = Utilitaires.zscore
