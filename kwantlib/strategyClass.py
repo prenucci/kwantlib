@@ -55,7 +55,7 @@ class Strategy:
         
     @staticmethod 
     def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame, is_vol_target:bool = True) -> pd.DataFrame:
-        signal = signal.replace([np.inf, -np.inf], np.nan).reindex(volatility.index, method='ffill')
+        signal = signal.replace([np.inf, -np.inf], np.nan).reindex(volatility.index, method='ffill').ffill()
         pos = signal.div(volatility, axis = 0, level = 0) if is_vol_target else signal  
         pos = pos.where(Utilitaires.zscore(pos).abs() < 5, np.nan)
         return pd.concat([ 
@@ -70,7 +70,7 @@ class Strategy:
         def _pnl(pos:pd.DataFrame, ret:pd.Series) -> pd.DataFrame: 
             # necessaire de faire la multiplication sur les index de ret sinon 
             # introduction de biais style "move the pos at days when you can't"
-            pos = pos.reindex(ret.index, method='ffill')
+            pos = pos.reindex(ret.index, method='ffill').ffill()
             return pos.shift(1).multiply(ret, axis=0)
         
         pnl = pd.concat([
@@ -288,7 +288,7 @@ class Strategy:
     ) -> 'Strategy':
         pnl = self.pnl.shift(1)
         w = Operator.markovitz(pnl, method=method, level=level)
-        w = w.reindex(self.signal.index, method='ffill')
+        w = w.reindex(self.signal.index, method='ffill').ffill()
         return self._reinit(signal = self.signal.multiply(w))
     
     def isorisk(self:'Strategy') -> 'Strategy':

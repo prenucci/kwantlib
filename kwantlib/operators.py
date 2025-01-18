@@ -195,7 +195,7 @@ class Operator:
             results = pool.starmap(markovitz_func, tasks)
         weights = pd.DataFrame(results, index = training_dates).ffill()
         
-        return weights.reindex(pnl.index, method = 'ffill').fillna(0)
+        return weights.reindex(pnl.index, method = 'ffill').ffill().fillna(0)
 
     @staticmethod   
     def markovitz(
