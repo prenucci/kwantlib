@@ -26,6 +26,12 @@ try:
             """
             raise NotImplementedError('cluster')
             return 
+        
+        @staticmethod
+        def monkey_patch(): 
+            pd.Series.infer = tskl_Operator.infer
+            pd.DataFrame.infer = tskl_Operator.infer
+            pd.DataFrame.cluster = tskl_Operator.cluster
     
 except Exception:
     class tskl_Operator:
@@ -35,8 +41,7 @@ except Exception:
         @staticmethod   
         def cluster(*args, **kwargs) -> pd.DataFrame: 
             raise NotImplementedError('tskit_learn is necessary for this operation. pip install git+https://github.com/Cnernc/tskit_learn.git')
+        @staticmethod
+        def monkey_patch(): 
+            raise NotImplementedError('tskit_learn is necessary for this operation. pip install git+https://github.com/Cnernc/tskit_learn.git')
 
-def monkey_patch_tskl_operators(): 
-    pd.Series.infer = tskl_Operator.infer
-    pd.DataFrame.infer = tskl_Operator.infer
-    pd.DataFrame.cluster = tskl_Operator.cluster

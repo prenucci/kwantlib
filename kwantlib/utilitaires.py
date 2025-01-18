@@ -79,19 +79,20 @@ class Utilitaires:
                 raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")
         
         return zscore.reindex(df.index).ffill()
-    
-def monkey_patch_utilitaires(): 
-    pd.Series.shift_with_sample = Utilitaires.shift_with_sample
-    pd.DataFrame.shift_with_sample = Utilitaires.shift_with_sample
 
-    pd.DataFrame.permute_levels = Utilitaires.permute_levels
-    pd.DataFrame.flatten_columns = Utilitaires.flatten_columns
+    @staticmethod
+    def monkey_patch(): 
+        pd.Series.shift_with_sample = Utilitaires.shift_with_sample
+        pd.DataFrame.shift_with_sample = Utilitaires.shift_with_sample
 
-    pd.DataFrame.plotx = Utilitaires.plotx
-    pd.Series.plotx = Utilitaires.plotx
+        pd.DataFrame.permute_levels = Utilitaires.permute_levels
+        pd.DataFrame.flatten_columns = Utilitaires.flatten_columns
 
-    pd.DataFrame.plotxd = Utilitaires.plotxd
-    pd.Series.plotxd = Utilitaires.plotxd
+        pd.DataFrame.plotx = Utilitaires.plotx
+        pd.Series.plotx = Utilitaires.plotx
 
-    pd.Series.zscore = Utilitaires.zscore
-    pd.DataFrame.zscore = Utilitaires.zscore
+        pd.DataFrame.plotxd = Utilitaires.plotxd
+        pd.Series.plotxd = Utilitaires.plotxd
+
+        pd.Series.zscore = Utilitaires.zscore
+        pd.DataFrame.zscore = Utilitaires.zscore

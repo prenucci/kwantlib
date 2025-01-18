@@ -140,20 +140,15 @@ class Operator:
             constraints = [{'type': 'eq', 'fun': lambda beta: beta @ beta - 1} ]
             bounds = [(0, None) for _ in range(n)] 
             initial_beta = np.ones(n) / n  
-            
-            result = minimize(
-                objective, initial_beta, bounds=bounds, constraints=constraints,method='SLSQP'  
-            )
-            
+            result = minimize(objective, initial_beta, bounds=bounds, constraints=constraints,method='SLSQP')
+            weights = result.x
+            weights /= np.sqrt(weights @ weights)
             if not result.success:
-                print(f"Optimization failed: {result.message}")
-                return pd.Series(index=pnl_train.columns)
-                
-            return pd.Series(result.x, index=pnl_train.columns)
-            
+                raise ValueError(f"Optimization failed: {result.message}")            
         except ValueError as e: 
-            print(f'error in markovitz_minvol {e}')
-            return pd.Series(index=pnl_train.columns)
+            print(f'error in markovitz_minvol {e}, filling the corresponding row with nan')
+            weights = np.nan
+        return pd.Series(weights, index = pnl_train.columns)
 
 
     @staticmethod
@@ -163,11 +158,12 @@ class Operator:
             n = len(pnl_train.columns) 
             mu = pnl_train.mean().to_numpy() 
             sigma = pnl_train.cov().to_numpy() + l2_reg * np.eye(n)
-            weights = np.linalg.solve(sigma, mu)
+            weights = np.linalg.solve(sigma, mu) 
+            weights /= np.sqrt(weights @ weights)
         except ValueError as e: 
-            print(f'error in markovitz_maxsharpe {e}')
-            weights = 0
-        return pd.Series(weights, index = pnl_train.columns).fillna(0)
+            print(f'error in markovitz_maxsharpe {e}, filling the corresponding row with nan')
+            weights = np.nan
+        return pd.Series(weights, index = pnl_train.columns)
 
     @staticmethod
     def _markovitz(
@@ -176,7 +172,10 @@ class Operator:
             freq_retraining:int
         ) -> pd.DataFrame:
         
-        training_dates = [pnl.index[i] for i in range(min(10, freq_retraining), len(pnl), freq_retraining)]
+        training_dates = [
+            pnl.index[i] 
+            for i in range(min(10, freq_retraining), len(pnl), freq_retraining)
+        ]
 
         match method:
             case 'maxsharpe':
@@ -186,10 +185,7 @@ class Operator:
             case _:
                 raise ValueError(f"method should be in ['maxsharpe', 'minvol'] not {method}")
 
-        tasks = ( 
-            (pnl.loc[ pnl.index < training_date, :].fillna(0), l2_reg) 
-            for training_date in training_dates 
-        )
+        tasks = ( (pnl.loc[ pnl.index < training_date, :].fillna(0), l2_reg) for training_date in training_dates )
         
         with mp.Pool(Operator.n_jobs) as pool:
             results = pool.starmap(markovitz_func, tasks)
@@ -223,18 +219,16 @@ class Operator:
                 }, axis = 1)
             case _:
                 raise ValueError(f"level should be in ['cross asset', 'per asset'] not {level}")
-
-    ############ ML
-
     
-def monkey_patch_operators(): 
-    pd.Series.cross_moving_average = Operator.cross_moving_average
+    @staticmethod
+    def monkey_patch(): 
+        pd.Series.cross_moving_average = Operator.cross_moving_average
 
-    pd.DataFrame.cross_moving_average = Operator.cross_moving_average
-    pd.DataFrame.proj = Operator.proj
-    pd.DataFrame.vote = Operator.vote
-    pd.DataFrame.ranking = Operator.ranking
-    pd.DataFrame.markovitz = Operator.markovitz
+        pd.DataFrame.cross_moving_average = Operator.cross_moving_average
+        pd.DataFrame.proj = Operator.proj
+        pd.DataFrame.vote = Operator.vote
+        pd.DataFrame.ranking = Operator.ranking
+        pd.DataFrame.markovitz = Operator.markovitz
 
     # ##############################
     # ##### Other stuff (useless ?)
