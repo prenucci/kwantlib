@@ -23,7 +23,7 @@ class Strategy:
             signal.columns.get_level_values(0).unique()      
         )
 
-        self.signal: pd.DataFrame = signal.loc[:, instruments].copy()
+        self.signal: pd.DataFrame = signal.loc[:, instruments].replace([np.inf, -np.inf], np.nan).copy()
         self.returns: pd.DataFrame = returns.loc[:, instruments].copy()
 
         if spread is not None:
@@ -55,7 +55,7 @@ class Strategy:
         
     @staticmethod 
     def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame, is_vol_target:bool = True) -> pd.DataFrame:
-        signal = signal.replace([np.inf, -np.inf], np.nan).reindex(volatility.index, method='ffill').ffill()
+        signal = signal.reindex(volatility.index, method='ffill').ffill()
         pos = signal.div(volatility, axis = 0, level = 0) if is_vol_target else signal  
         pos = pos.where(Utilitaires.zscore(pos).abs() < 5, np.nan)
         return pd.concat([ 
