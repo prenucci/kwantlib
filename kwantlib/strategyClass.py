@@ -25,13 +25,12 @@ class Strategy:
 
         self.signal: pd.DataFrame = signal.loc[:, instruments].replace([np.inf, -np.inf], np.nan).copy()
         self.returns: pd.DataFrame = returns.loc[:, instruments].copy()
+        self.spread = pd.DataFrame(index = self.returns.index, columns = self.returns.columns)
 
         if spread is not None:
-            self.spread:pd.DataFrame = spread.loc[:, instruments].copy()
+            self.spread = spread.loc[:, instruments].copy()
             assert self.spread.index.equals(self.returns.index), 'spread and returns must have the same index'
             assert self.spread.columns.equals(self.returns.columns), 'spread and returns must have the same columns'
-        else:  
-            self.spread = pd.DataFrame(index = self.returns.index, columns = self.returns.columns)
 
         self.is_vol_target = is_vol_target
     
