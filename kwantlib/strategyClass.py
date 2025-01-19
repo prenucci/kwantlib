@@ -13,10 +13,9 @@ from .tskl_operators import tskl_Operator
 class Strategy:
 
     risk = 1
-    fee_per_transaction:float = 0
 
     def __init__(
-            self: 'Strategy', signal:pd.DataFrame, returns:pd.DataFrame, spread:pd.DataFrame = None, is_vol_target:bool=True
+            self: 'Strategy', signal:pd.DataFrame, returns:pd.DataFrame, is_vol_target:bool=True
         ) -> None:
 
         instruments = returns.columns.intersection(
@@ -25,23 +24,15 @@ class Strategy:
 
         self.signal: pd.DataFrame = signal.loc[:, instruments].replace([np.inf, -np.inf], np.nan).copy()
         self.returns: pd.DataFrame = returns.loc[:, instruments].copy()
-        self.spread = pd.DataFrame(index = self.returns.index, columns = self.returns.columns)
-
-        if spread is not None:
-            self.spread = spread.loc[:, instruments].copy()
-            assert self.spread.index.equals(self.returns.index), 'spread and returns must have the same index'
-            assert self.spread.columns.equals(self.returns.columns), 'spread and returns must have the same columns'
-
         self.is_vol_target = is_vol_target
     
     def _reinit(
-            self:'Strategy',signal:pd.DataFrame = None,returns:pd.DataFrame = None,spread:pd.DataFrame = None,is_vol_target:bool = None
+            self:'Strategy',signal:pd.DataFrame = None,returns:pd.DataFrame = None, is_vol_target:bool = None
         ) -> 'Strategy':
 
         return Strategy(
             signal = signal if signal is not None else self.signal.copy(),
             returns= returns if returns is not None else self.returns.copy(),
-            spread = spread if spread is not None else self.spread.copy(),
             is_vol_target = is_vol_target if is_vol_target is not None else self.is_vol_target,
         )
     
@@ -86,20 +77,22 @@ class Strategy:
         return - ( pnl.cumsum().cummax() - pnl.cumsum() ) / pnl.std()
     
     @staticmethod
-    def compute_cost(pos_change:pd.DataFrame, spread:pd.DataFrame, fee_per_transaction:float = 1e-2) -> pd.DataFrame:
-        def _cost(pos_change:pd.Series, spread:pd.Series) -> pd.Series:
-            spread = spread.reindex(pos_change.index).ffill().fillna(0)
-            return fee_per_transaction * spread * pos_change
+    def compute_cost(pos_change:pd.DataFrame, bid_ask_spread:pd.DataFrame, fee_per_transaction:float = 1e-2) -> pd.DataFrame:
+        def _cost(pos_change:pd.Series, bid_ask_spread:pd.Series) -> pd.Series:
+            bid_ask_spread = bid_ask_spread.reindex(pos_change.index).ffill().fillna(0)
+            return fee_per_transaction * bid_ask_spread * pos_change
         return pd.concat([
-            _cost(pos_change.loc[:, col], spread.loc[:, col]) for col in pos_change.columns
+            _cost(pos_change.loc[:, col], bid_ask_spread.loc[:, col]) for col in pos_change.columns
         ], axis = 1)
     
     @property
     def volatility(self: 'Strategy') -> pd.DataFrame:
-        vol = self.returns.apply( 
+        return self.returns.apply( 
             lambda x: x.dropna().rolling(15).std() 
             )
-        return vol
+        # assert all(
+        #     vol.loc[:, col].dropna().index.equals(self.returns.loc[:, col].dropna().index[15:]) for col in vol.columns
+        # ), 'volatility and returns must have the same index'
     
     @property
     def position(self: 'Strategy') -> pd.DataFrame:
@@ -114,19 +107,6 @@ class Strategy:
     @property
     def drawdown(self:'Strategy') -> pd.DataFrame:
         return Strategy.compute_drawdown(self.pnl)
-    
-    @property
-    def cost(self:'Strategy') -> pd.DataFrame:
-        assert self.spread.notna().any().any(), 'you need to have a spread to compute the cost'
-        return Strategy.compute_cost(
-            pos_change = self.position.diff().abs(),
-            spread = self.spread.ffill(),
-            fee_per_transaction = Strategy.fee_per_transaction
-        )
-    
-    @property
-    def net_pnl(self:'Strategy') -> pd.DataFrame:
-        return self.pnl.sub(self.cost, axis=0)
     
     @property
     def return_pnl(self:'Strategy') -> pd.Series:
@@ -239,11 +219,9 @@ class Strategy:
     ### Backtest
 
     @staticmethod
-    def backtest(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None, cost:pd.DataFrame = None) -> pd.DataFrame:   
+    def backtest(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.DataFrame:   
         if pos_change is None:
             pos_change = pos.diff().abs()
-        if cost is not None:
-            pnl = pnl.sub(cost, axis=0)
         pnl_total = pnl.sum(1).to_frame('overall')
         pos_total = pos.abs().sum(1).to_frame('overall')
         pos_change_total = pos_change.sum(1).to_frame('overall')
@@ -257,13 +235,11 @@ class Strategy:
         pnl = self.pnl.fillna(0).loc[training_date:, :]
         pos = self.position.abs()
         pos_change = self.position.diff().abs()
-        if hasattr(self, 'spread') and self.spread is not None:
-            cost = self.cost.loc[training_date:, :]
         if hasattr(pos.index, 'date'):
             pos = pos.groupby(pos.index.date).mean()
             pos_change = pos_change.groupby(pos_change.index.date).sum()
             pnl = pnl.groupby(pnl.index.date).sum()
-        return Strategy.backtest(pos, pnl, pos_change, cost if hasattr(self, 'spread') and self.spread is not None else None)
+        return Strategy.backtest(pos, pnl, pos_change) 
 
     ### Operators
 
