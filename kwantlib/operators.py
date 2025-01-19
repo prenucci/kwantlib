@@ -172,11 +172,6 @@ class Operator:
             freq_retraining:int
         ) -> pd.DataFrame:
         
-        training_dates = [
-            pnl.index[i] 
-            for i in range(min(10, freq_retraining), len(pnl), freq_retraining)
-        ]
-
         match method:
             case 'maxsharpe':
                 markovitz_func = Operator._markovitz_maxsharpe
@@ -184,12 +179,17 @@ class Operator:
                 markovitz_func = Operator._markovitz_minvol
             case _:
                 raise ValueError(f"method should be in ['maxsharpe', 'minvol'] not {method}")
+            
+        dates = pnl.sort_index(axis=0).index.unique()
+        training_dates = (dates[i] for i in range(min(10, freq_retraining), len(dates), freq_retraining))
 
-        tasks = ( (pnl.loc[ pnl.index < training_date, :].fillna(0), l2_reg) for training_date in training_dates )
-        
+        tasks = ( 
+            (pnl.loc[ pnl.index < training_date, :].fillna(0), l2_reg) for training_date in training_dates
+        )
+
         with mp.Pool(Operator.n_jobs) as pool:
             results = pool.starmap(markovitz_func, tasks)
-        weights = pd.DataFrame(results, index = training_dates).ffill()
+        weights = pd.DataFrame(results, index = training_dates)
         
         return weights.reindex(pnl.index, method = 'ffill').ffill().fillna(0)
 
