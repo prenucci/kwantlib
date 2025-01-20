@@ -176,7 +176,7 @@ class Strategy:
             pd.concat(metric_dict, axis=1).sort_values(by='eff_sharpe', ascending=False, axis=0)
             if isinstance(pos, pd.DataFrame) 
             else pd.Series(metric_dict).to_frame('overall').T
-            )
+        )
         return metric_pd.dropna(how='all', axis=0)
     
     def ftrading(self:'Strategy', training_date:str = None) -> pd.Series:
@@ -238,7 +238,9 @@ class Strategy:
         Utilitaires.plotx( Strategy.risk * Strategy.compute_drawdown(pnl_total), title='drawdown' ).show()
 
         if len(pnl.columns.get_level_values(0).unique()) < 30:
-            Utilitaires.plotx( Strategy.risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
+            Utilitaires.plotx( 
+                Strategy.risk * pnl.cumsum() / pnl.std(), title='pnl per asset' 
+            ).show()
 
         return Strategy.compute_metrics(pos, pnl)
 
