@@ -228,15 +228,15 @@ class Strategy:
             pos_change = pos_change.groupby(pos_change.index.date).sum()
             pnl = pnl.groupby(pnl.index.date).sum()
 
-        pnl_total = pnl.sum(1).to_frame('overall')
-        pos_total = pos.abs().sum(1).to_frame('overall')
-        pos_change_total = pos_change.sum(1).to_frame('overall')
+        pnl_total = pnl.sum(1)
+        pos_total = pos.abs().sum(1)
+        pos_change_total = pos_change.sum(1)
 
         print(Strategy.compute_metrics(pos_total, pnl_total, pos_change_total))
 
         Utilitaires.plotx( Strategy.risk * pnl_total.cumsum() / pnl_total.std(), title='pnl total' ).show()
         Utilitaires.plotx( Strategy.risk * Strategy.compute_drawdown(pnl_total), title='drawdown' ).show()
-        
+
         if len(pnl.columns.get_level_values(0).unique()) < 30:
             Utilitaires.plotx( Strategy.risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
 
