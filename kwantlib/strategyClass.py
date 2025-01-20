@@ -222,24 +222,32 @@ class Strategy:
     def backtest(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.DataFrame:   
         if pos_change is None:
             pos_change = pos.diff().abs()
-        pnl_total = pnl.sum(1).to_frame('overall')
-        pos_total = pos.abs().sum(1).to_frame('overall')
-        pos_change_total = pos_change.sum(1).to_frame('overall')
-        print(Strategy.compute_metrics(pos_total, pnl_total, pos_change_total))
-        Utilitaires.plotx( Strategy.risk * pnl_total.cumsum() / pnl_total.std(), title='pnl total' ).show()
-        Utilitaires.plotx( Strategy.risk * Strategy.compute_drawdown(pnl_total), title='drawdown' ).show()
-        Utilitaires.plotx( Strategy.risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
-        return Strategy.compute_metrics(pos, pnl)
 
-    def show(self:'Strategy', training_date:str=None) -> pd.DataFrame:
-        pnl = self.pnl.fillna(0).loc[training_date:, :]
-        pos = self.position.abs()
-        pos_change = self.position.diff().abs()
         if hasattr(pos.index, 'date'):
             pos = pos.groupby(pos.index.date).mean()
             pos_change = pos_change.groupby(pos_change.index.date).sum()
             pnl = pnl.groupby(pnl.index.date).sum()
-        return Strategy.backtest(pos, pnl, pos_change) 
+
+        pnl_total = pnl.sum(1).to_frame('overall')
+        pos_total = pos.abs().sum(1).to_frame('overall')
+        pos_change_total = pos_change.sum(1).to_frame('overall')
+
+        print(Strategy.compute_metrics(pos_total, pnl_total, pos_change_total))
+
+        Utilitaires.plotx( Strategy.risk * pnl_total.cumsum() / pnl_total.std(), title='pnl total' ).show()
+        Utilitaires.plotx( Strategy.risk * Strategy.compute_drawdown(pnl_total), title='drawdown' ).show()
+        
+        if len(pnl.columns.get_level_values(0).unique()) < 30:
+            Utilitaires.plotx( Strategy.risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
+
+        return Strategy.compute_metrics(pos, pnl)
+
+    def show(self:'Strategy', training_date:str=None) -> pd.DataFrame:
+        return Strategy.backtest(
+            pos = self.position.loc[training_date:, :], 
+            pnl = self.pnl.loc[training_date:, :].fillna(0), 
+            pos_change = self.position.loc[training_date:, :].diff().abs()
+        )
 
     ### Operators
 
