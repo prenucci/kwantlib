@@ -5,7 +5,6 @@ from typing import Iterable, Callable, Literal, Any
 
 from .utilitaires import Utilitaires
 from .operators import Operator
-from .tskl_operators import tskl_Operator
 
 
 ############ Strategy Class
@@ -206,39 +205,6 @@ class Strategy:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
         pos_change = pos.diff().abs()
         return Strategy.compute_metrics(pos, pnl, pos_change)
-    
-    ### Backtest
-
-    @staticmethod
-    def backtest(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.DataFrame:   
-        if pos_change is None:
-            pos_change = pos.diff().abs()
-
-        if hasattr(pos.index, 'date'):
-            pos = pos.groupby(pos.index.date).mean()
-            pos_change = pos_change.groupby(pos_change.index.date).sum()
-            pnl = pnl.groupby(pnl.index.date).sum()
-
-        pnl_total = pnl.sum(1)
-        pos_total = pos.abs().sum(1)
-        pos_change_total = pos_change.sum(1)
-
-        print(Strategy.compute_metrics(pos_total, pnl_total, pos_change_total))
-
-        Utilitaires.plotx( Strategy.risk * pnl_total.cumsum() / pnl_total.std(), title='pnl total' ).show()
-        Utilitaires.plotx( Strategy.risk * Strategy.compute_drawdown(pnl_total), title='drawdown' ).show()
-
-        if pnl.columns.nlevels == 1 and len(pnl.columns) < 30:
-            Utilitaires.plotx( Strategy.risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
-
-        return Strategy.compute_metrics(pos, pnl)
-
-    def show(self:'Strategy', training_date:str=None) -> pd.DataFrame:
-        return Strategy.backtest(
-            pos = self.position.loc[training_date:, :], 
-            pnl = self.pnl.loc[training_date:, :].fillna(0), 
-            pos_change = self.position.loc[training_date:, :].diff().abs()
-        )
 
     ### Operators
 
@@ -276,28 +242,41 @@ class Strategy:
         sharpe = self.pnl.shift(1).apply(_sharpe) 
         return self._reinit(signal = self.signal.where(sharpe < threshold, 0))
     
-    ### tskl_operators
-    
-    def forecast(
-        self:'Strategy', lookahead_steps:int = 0, *args, **kwargs
-    ) -> 'Strategy':
+    ### Backtest
 
-        target = self.returns.shift(-lookahead_steps)
-        features = self.signal
-        return self._reinit(
-            signal = tskl_Operator.infer(target, features, lookahead_steps = lookahead_steps, *args, **kwargs)
+    @staticmethod
+    def backtest(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.DataFrame:   
+        if pos_change is None:
+            pos_change = pos.diff().abs()
+
+        if hasattr(pos.index, 'date'):
+            pos = pos.groupby(pos.index.date).mean()
+            pos_change = pos_change.groupby(pos_change.index.date).sum()
+            pnl = pnl.groupby(pnl.index.date).sum()
+
+        pnl_total = pnl.sum(1)
+        pos_total = pos.abs().sum(1)
+        pos_change_total = pos_change.sum(1)
+
+        print(Strategy.compute_metrics(pos_total, pnl_total, pos_change_total))
+
+        Utilitaires.plotx( Strategy.risk * pnl_total.cumsum() / pnl_total.std(), title='pnl total' ).show()
+        Utilitaires.plotx( Strategy.risk * Strategy.compute_drawdown(pnl_total), title='drawdown' ).show()
+
+        if len(pnl.columns) < 30:
+            Utilitaires.plotx( Strategy.risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
+
+        return Strategy.compute_metrics(pos, pnl)
+
+    def show(self:'Strategy', training_date:str=None) -> pd.DataFrame:
+        if self.returns.columns.nlevels > 1:
+            self = self.proj()
+
+        return Strategy.backtest(
+            pos = self.position.loc[training_date:, :], 
+            pnl = self.pnl.loc[training_date:, :].fillna(0), 
+            pos_change = self.position.loc[training_date:, :].diff().abs()
         )
-
-    def residual(
-        self:'Strategy', *args, **kwargs
-    ) -> 'Strategy':
-        target = self.returns
-        features = self.signal
-        residual_ = target - tskl_Operator.infer(target, features, *args, **kwargs)
-        return self._reinit(signal = residual_.apply(lambda x: x.dropna().cumsum()))
-    
-    def cluster(self:'Strategy', *args, **kwargs) -> 'Strategy':
-        raise NotImplementedError('cluster')
 
 class StrategyCost(Strategy):
 
