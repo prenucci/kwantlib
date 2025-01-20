@@ -228,10 +228,8 @@ class Strategy:
         Utilitaires.plotx( Strategy.risk * pnl_total.cumsum() / pnl_total.std(), title='pnl total' ).show()
         Utilitaires.plotx( Strategy.risk * Strategy.compute_drawdown(pnl_total), title='drawdown' ).show()
 
-        if len(pnl.columns.get_level_values(0).unique()) < 30:
-            Utilitaires.plotx( 
-                Strategy.risk * pnl.cumsum() / pnl.std(), title='pnl per asset' 
-            ).show()
+        if pnl.columns.nlevels == 1 and len(pnl.columns) < 30:
+            Utilitaires.plotx( Strategy.risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
 
         return Strategy.compute_metrics(pos, pnl)
 
