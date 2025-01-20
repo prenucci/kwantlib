@@ -27,7 +27,7 @@ class Strategy:
         self.is_vol_target = is_vol_target
     
     def _reinit(
-            self:'Strategy',signal:pd.DataFrame = None,returns:pd.DataFrame = None, is_vol_target:bool = None
+            self:'Strategy', signal:pd.DataFrame = None, returns:pd.DataFrame = None, is_vol_target:bool = None
         ) -> 'Strategy':
 
         return Strategy(
@@ -75,16 +75,7 @@ class Strategy:
     @staticmethod
     def compute_drawdown(pnl:pd.DataFrame) -> pd.DataFrame:
         return - ( pnl.cumsum().cummax() - pnl.cumsum() ) / pnl.std()
-    
-    @staticmethod
-    def compute_cost(pos_change:pd.DataFrame, bid_ask_spread:pd.DataFrame, fee_per_transaction:float = 1e-2) -> pd.DataFrame:
-        def _cost(pos_change:pd.Series, bid_ask_spread:pd.Series) -> pd.Series:
-            bid_ask_spread = bid_ask_spread.reindex(pos_change.index).ffill().fillna(0)
-            return fee_per_transaction * bid_ask_spread * pos_change
-        return pd.concat([
-            _cost(pos_change.loc[:, col], bid_ask_spread.loc[:, col]) for col in pos_change.columns
-        ], axis = 1)
-    
+        
     @property
     def volatility(self: 'Strategy') -> pd.DataFrame:
         return self.returns.apply( 
@@ -309,3 +300,47 @@ class Strategy:
     
     def cluster(self:'Strategy', *args, **kwargs) -> 'Strategy':
         raise NotImplementedError('cluster')
+
+class StrategyCost(Strategy):
+
+    fee_per_transaction = 1e-4
+    
+    def __init__(
+            self:'StrategyCost', signal:pd.DataFrame, returns:pd.DataFrame, 
+            bid_ask_spread:pd.DataFrame, is_vol_target:bool = True,
+        ):
+        assert bid_ask_spread.columns.equals(returns.columns), 'bid_ask_spread and returns must have the same columns'
+        super().__init__(signal, returns, is_vol_target)
+        self.bid_ask_spread = bid_ask_spread
+
+    def _reinit(self:'StrategyCost', signal:pd.DataFrame = None, returns:pd.DataFrame = None, bid_ask_spread:pd.DataFrame = None, is_vol_target:bool = None) -> 'StrategyCost':
+        return StrategyCost(
+            signal = signal if signal is not None else self.signal.copy(),
+            returns= returns if returns is not None else self.returns.copy(),
+            bid_ask_spread = bid_ask_spread if bid_ask_spread is not None else self.bid_ask_spread.copy(),
+            is_vol_target = is_vol_target if is_vol_target is not None else self.is_vol_target,
+        )
+
+    @staticmethod
+    def compute_cost(
+        pos_change:pd.DataFrame, bid_ask_spread:pd.DataFrame, fee_per_transaction:float
+    ) -> pd.DataFrame:
+        
+        def _cost(pos_change_:pd.Series, bid_ask_spread_:pd.Series) -> pd.Series:
+            pos_change_ = pos_change_.reindex(bid_ask_spread_.index, method='ffill').ffill().fillna(0)
+            return (bid_ask_spread_ / 2 + fee_per_transaction) * pos_change_ 
+        
+        return pd.concat([
+            _cost(pos_change.loc[:, col], bid_ask_spread.loc[:, col].dropna()) 
+            for col in bid_ask_spread.columns
+        ], axis = 1)
+
+    @property
+    def cost(self:'StrategyCost') -> pd.DataFrame:
+        return StrategyCost.compute_cost(
+            self.position.diff().abs(), self.bid_ask_spread, StrategyCost.fee_per_transaction
+        )
+    
+    @property
+    def pnl(self:'StrategyCost') -> pd.DataFrame:
+        return super().pnl - self.cost
