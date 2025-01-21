@@ -145,8 +145,21 @@ class Strategy:
     def compute_maxdrawdown(pnl:pd.DataFrame) -> pd.Series:
         if hasattr(pnl.index, 'date'):
             pnl = pnl.groupby(pnl.index.date).sum()
-        return Strategy.compute_drawdown(pnl).min()
+        return - Strategy.compute_drawdown(pnl).min()
     
+    @staticmethod
+    def compute_colmar(pnl:pd.DataFrame) -> pd.Series:
+        if hasattr(pnl.index, 'date'):
+            pnl = pnl.groupby(pnl.index.date).sum()
+        return 252 * pnl.mean() / Strategy.compute_maxdrawdown(pnl)
+        return 16 * Strategy.compute_sharpe(pnl) / Strategy.compute_maxdrawdown(pnl)
+    
+    @staticmethod
+    def comput_sortino(pnl:pd.DataFrame) -> pd.Series:
+        if hasattr(pnl.index, 'date'):
+            pnl = pnl.groupby(pnl.index.date).sum()
+        return 16 * pnl.mean() / pnl[pnl < 0].std()
+
     @staticmethod
     def compute_metrics(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.DataFrame:
         
@@ -160,7 +173,9 @@ class Strategy:
             'eff_sharpe': Strategy.compute_sharpe(pnl),
             'raw_sharpe': Strategy.compute_sharpe(pnl, is_effective=False),
             'r_sharpe': Strategy.compute_sharpe(pnl.fillna(0).rolling(252).mean()),
-            'maxdrawdown': Strategy.compute_maxdrawdown(pnl)
+            'maxdrawdown': Strategy.compute_maxdrawdown(pnl),
+            'colmar': Strategy.compute_colmar(pnl),
+            'sortino': Strategy.comput_sortino(pnl),
         }
         metric_pd = (
             pd.concat(metric_dict, axis=1).sort_values(by='eff_sharpe', ascending=False, axis=0)
@@ -199,7 +214,15 @@ class Strategy:
     def maxdrawdown(self:'Strategy', training_date:str = None) -> pd.Series:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
         return Strategy.compute_maxdrawdown(pnl)
-
+    
+    def colmar(self:'Strategy', training_date:str = None) -> pd.Series:
+        pnl = self.pnl.loc[:, training_date:].fillna(0)
+        return Strategy.compute_colmar(pnl)
+    
+    def sortino(self:'Strategy', training_date:str = None) -> pd.Series:
+        pnl = self.pnl.loc[:, training_date:].fillna(0)
+        return Strategy.compute_sortino(pnl)
+    
     def metrics(self:'Strategy', training_date:str = None) -> pd.Series:
         pos = self.position.loc[:, training_date:]
         pnl = self.pnl.loc[:, training_date:].fillna(0)
