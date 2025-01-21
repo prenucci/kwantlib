@@ -14,7 +14,11 @@ class Strategy:
     risk = 1
 
     def __init__(
-            self: 'Strategy', signal:pd.DataFrame, returns:pd.DataFrame, is_vol_target:bool=True, vol:pd.DataFrame = None
+            self:'Strategy', 
+            signal:pd.DataFrame, 
+            returns:pd.DataFrame, 
+            vol_target_window:int|str=15, 
+            vol:pd.DataFrame = None
         ) -> None:
 
         instruments = returns.columns.intersection(
@@ -23,21 +27,29 @@ class Strategy:
 
         self.signal: pd.DataFrame = signal.loc[:, instruments].replace([np.inf, -np.inf], np.nan).copy()
         self.returns: pd.DataFrame = returns.loc[:, instruments].copy()
-        self.is_vol_target = is_vol_target
 
         if vol is None:
-            self.volatility = self.returns.apply( lambda x: x.dropna().rolling(15).std() )
-        else:
-            self.volatility = Utilitaires.custom_reindex_like(vol, self.returns).ffill()
-    
+            vol = (
+                self.returns.apply(lambda x: x.dropna().rolling(vol_target_window).std())
+                if vol_target_window else
+                pd.DataFrame(data=1, index=self.returns.index, columns=self.returns.columns)
+            )
+
+        self.volatility = Utilitaires.custom_reindex_like(vol, self.returns).ffill()
+
     def _reinit(
-            self:'Strategy', signal:pd.DataFrame = None, returns:pd.DataFrame = None, is_vol_target:bool = None
+            self:'Strategy', 
+            signal:pd.DataFrame = None, 
+            returns:pd.DataFrame = None, 
+            vol_target_window:int|str = None,
+            vol:pd.DataFrame = None
         ) -> 'Strategy':
 
         return Strategy(
             signal = signal if signal is not None else self.signal.copy(),
             returns= returns if returns is not None else self.returns.copy(),
-            is_vol_target = is_vol_target if is_vol_target is not None else self.is_vol_target,
+            vol_target_window = vol_target_window if vol_target_window is not None else self.vol_target_window,
+            vol = vol if vol is not None else self.volatility.copy()
         )
     
     def __getitem__(self:'Strategy', to_keep_list:Iterable[str]) -> 'Strategy':
@@ -48,9 +60,9 @@ class Strategy:
     #### Properties
         
     @staticmethod 
-    def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame, is_vol_target:bool = True) -> pd.DataFrame:
+    def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame) -> pd.DataFrame:
         signal = Utilitaires.custom_reindex_like(signal, volatility).ffill()
-        pos = signal.div(volatility, axis = 0, level = 0) if is_vol_target else signal  
+        pos = signal.div(volatility, axis = 0, level = 0) 
         pos = pos.where(Utilitaires.zscore(pos).abs() < 5, np.nan)
         return Utilitaires.custom_reindex_like(pos, volatility).ffill()
     
@@ -73,12 +85,9 @@ class Strategy:
     def compute_drawdown(pnl:pd.DataFrame) -> pd.DataFrame:
         return - ( pnl.cumsum().cummax() - pnl.cumsum() ) / pnl.std()
         
-    
     @property
     def position(self: 'Strategy') -> pd.DataFrame:
-        return Strategy.compute_position(
-            self.signal, self.volatility, self.is_vol_target
-        )
+        return Strategy.compute_position(self.signal, self.volatility)
     
     @property
     def pnl(self: 'Strategy') -> pd.DataFrame:
