@@ -14,7 +14,7 @@ class Strategy:
     risk = 1
 
     def __init__(
-            self: 'Strategy', signal:pd.DataFrame, returns:pd.DataFrame, is_vol_target:bool=True
+            self: 'Strategy', signal:pd.DataFrame, returns:pd.DataFrame, is_vol_target:bool=True, vol:pd.DataFrame = None
         ) -> None:
 
         instruments = returns.columns.intersection(
@@ -24,6 +24,11 @@ class Strategy:
         self.signal: pd.DataFrame = signal.loc[:, instruments].replace([np.inf, -np.inf], np.nan).copy()
         self.returns: pd.DataFrame = returns.loc[:, instruments].copy()
         self.is_vol_target = is_vol_target
+
+        if vol is None:
+            self.volatility = self.returns.apply( lambda x: x.dropna().rolling(15).std() )
+        else:
+            self.volatility = Utilitaires.reindex_like(vol, self.returns)
     
     def _reinit(
             self:'Strategy', signal:pd.DataFrame = None, returns:pd.DataFrame = None, is_vol_target:bool = None
@@ -44,15 +49,10 @@ class Strategy:
         
     @staticmethod 
     def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame, is_vol_target:bool = True) -> pd.DataFrame:
-        signal = signal.reindex(volatility.index, method='ffill').ffill()
+        signal = Utilitaires.reindex_like(signal, volatility)
         pos = signal.div(volatility, axis = 0, level = 0) if is_vol_target else signal  
         pos = pos.where(Utilitaires.zscore(pos).abs() < 5, np.nan)
-        return pd.concat([ 
-            pos.loc[:, [col]].reindex(
-                volatility.loc[:, col].dropna().index, method='ffill'
-            ) # nécessaire pour pas modifier la pos les jours ou l'exchange est close
-            for col in volatility.columns
-        ], axis = 1).ffill()
+        return Utilitaires.reindex_like(pos, volatility).ffill()
     
     @staticmethod
     def compute_pnl(position:pd.DataFrame, returns:pd.DataFrame) -> pd.DataFrame:
@@ -75,14 +75,6 @@ class Strategy:
     def compute_drawdown(pnl:pd.DataFrame) -> pd.DataFrame:
         return - ( pnl.cumsum().cummax() - pnl.cumsum() ) / pnl.std()
         
-    @property
-    def volatility(self: 'Strategy') -> pd.DataFrame:
-        return self.returns.apply( 
-            lambda x: x.dropna().rolling(15).std() 
-            )
-        # assert all(
-        #     vol.loc[:, col].dropna().index.equals(self.returns.loc[:, col].dropna().index[15:]) for col in vol.columns
-        # ), 'volatility and returns must have the same index'
     
     @property
     def position(self: 'Strategy') -> pd.DataFrame:

@@ -79,6 +79,27 @@ class Utilitaires:
                 raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")
         
         return zscore.reindex(df.index).ffill()
+    
+    @staticmethod
+    def _custom_reindex_like_ds(ds:pd.Series | pd.DataFrame, like:pd.Series) -> pd.Series | pd.DataFrame:
+        return ds.reindex(like.dropna().index, method='ffill').ffill()
+    
+    @staticmethod
+    def _custom_reindex_like_df(df:pd.DataFrame, like:pd.DataFrame) -> pd.DataFrame:
+        return pd.concat({
+            col: Utilitaires._custom_reindex_like_ds(df.loc[:, col], like.loc[:, col].dropna()) 
+            for col in like.columns
+        }, axis=1)
+    
+    @staticmethod
+    def custom_reindex_like(df:pd.DataFrame | pd.Series, like:pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
+        match type(df):
+            case pd.Series:
+                return Utilitaires._custom_reindex_like_ds(df, like)
+            case pd.DataFrame:
+                return Utilitaires._custom_reindex_like_df(df, like)
+            case _:
+                raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")
 
     @staticmethod
     def monkey_patch(): 
@@ -96,3 +117,6 @@ class Utilitaires:
 
         pd.Series.zscore = Utilitaires.zscore
         pd.DataFrame.zscore = Utilitaires.zscore
+
+        pd.DataFrame.custom_reindex_like = Utilitaires.custom_reindex_like
+        pd.Series.custom_reindex_like = Utilitaires.custom_reindex_like

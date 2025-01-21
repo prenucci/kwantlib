@@ -135,16 +135,17 @@ class Operator:
         try:
             n = len(pnl_train.columns) 
             sigma = pnl_train.cov().to_numpy() 
-            def objective(beta:np.ndarray) -> float:
-                return beta @ sigma @ beta + l2_reg * beta @ beta 
-            constraints = [{'type': 'eq', 'fun': lambda beta: beta @ beta - 1} ]
-            bounds = [(0, None) for _ in range(n)] 
-            initial_beta = np.ones(n) / n  
-            result = minimize(objective, initial_beta, bounds=bounds, constraints=constraints,method='SLSQP')
-            weights = result.x
-            weights /= np.sqrt(weights @ weights)
+            result = minimize(
+                fun= lambda beta: beta @ sigma @ beta + l2_reg * beta @ beta, 
+                x0= np.linalg.solve(sigma, np.ones(n)), 
+                bounds= [(0, None) for _ in range(n)], 
+                constraints= [{'type': 'eq', 'fun': lambda beta: beta @ beta - 1} ], 
+                method= 'SLSQP'
+            )
             if not result.success:
-                raise ValueError(f"Optimization failed: {result.message}")            
+                raise ValueError(f"Optimization failed: {result.message}") 
+            weights = result.x
+            weights /= np.sqrt(weights @ weights)           
         except ValueError as e: 
             print(f'error in markovitz_minvol {e}, filling the corresponding row with nan')
             weights = np.nan
