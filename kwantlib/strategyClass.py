@@ -35,7 +35,7 @@ class Strategy:
                 pd.DataFrame(data=1, index=self.returns.index, columns=self.returns.columns)
             )
 
-        self.volatility = Utilitaires.custom_reindex_like(vol, self.returns).ffill()
+        self.volatility = Utilitaires.custom_reindex_like(vol, self.returns)
 
     def _reinit(
             self:'Strategy', signal:pd.DataFrame = None, returns:pd.DataFrame = None, 
