@@ -86,17 +86,20 @@ class Utilitaires:
     
     @staticmethod
     def _custom_reindex_like_df(df:pd.DataFrame, like:pd.DataFrame) -> pd.DataFrame:
+        assert df.columns.isin(like.columns).all(), 'all columns of df should be in like'
         return pd.concat({
             col: Utilitaires._custom_reindex_like_ds(df.loc[:, col], like.loc[:, col].dropna()) 
-            for col in like.columns
+            for col in df.columns 
         }, axis=1)
     
     @staticmethod
     def custom_reindex_like(df:pd.DataFrame | pd.Series, like:pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
-        match type(df):
-            case pd.Series:
+        match type(df), type(like):
+            case pd.Series, pd.Series:
                 return Utilitaires._custom_reindex_like_ds(df, like)
-            case pd.DataFrame:
+            case pd.DataFrame, pd.Series:
+                return Utilitaires._custom_reindex_like_df(df, like)
+            case pd.DataFrame, pd.DataFrame:
                 return Utilitaires._custom_reindex_like_df(df, like)
             case _:
                 raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")

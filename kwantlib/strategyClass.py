@@ -38,11 +38,8 @@ class Strategy:
         self.volatility = Utilitaires.custom_reindex_like(vol, self.returns).ffill()
 
     def _reinit(
-            self:'Strategy', 
-            signal:pd.DataFrame = None, 
-            returns:pd.DataFrame = None, 
-            vol_target_window:int|str = None,
-            vol:pd.DataFrame = None
+            self:'Strategy', signal:pd.DataFrame = None, returns:pd.DataFrame = None, 
+            vol_target_window:int|str = None, vol:pd.DataFrame = None
         ) -> 'Strategy':
 
         return Strategy(
