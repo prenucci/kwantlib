@@ -94,12 +94,10 @@ class Utilitaires:
     
     @staticmethod
     def custom_reindex_like(df:pd.DataFrame | pd.Series, like:pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
-        match type(df), type(like):
-            case pd.Series, pd.Series:
+        match type(df):
+            case pd.Series:
                 return Utilitaires._custom_reindex_like_ds(df, like)
-            case pd.DataFrame, pd.Series:
-                return Utilitaires._custom_reindex_like_df(df, like)
-            case pd.DataFrame, pd.DataFrame:
+            case pd.DataFrame:
                 return Utilitaires._custom_reindex_like_df(df, like)
             case _:
                 raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")
