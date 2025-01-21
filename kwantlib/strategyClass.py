@@ -163,24 +163,25 @@ class Strategy:
         
         if pos_change is None:
             pos_change = pos.diff().abs() 
+        
+        if isinstance(pos, pd.Series) and isinstance(pnl, pd.Series) and isinstance(pos_change, pd.Series):
+            pos, pnl, pos_change = pos.to_frame('overall'), pnl.to_frame('overall'), pos_change.to_frame('overall')
 
-        metric_dict = {
-            'ftrading': Strategy.compute_ftrading(pos),
-            'turnover': Strategy.compute_turnover(pos, pos_change),
-            'pnl_per_trade': Strategy.compute_pnl_per_trade(pnl, pos_change),
-            'eff_sharpe': Strategy.compute_sharpe(pnl[pnl!=0]),
-            'raw_sharpe': Strategy.compute_sharpe(pnl),
-            'r_sharpe': Strategy.compute_sharpe(pnl.fillna(0).rolling(252).mean()),
-            'maxdrawdown': Strategy.compute_maxdrawdown(pnl),
-            'calamar': Strategy.compute_calamar(pnl),
-            'sortino': Strategy.comput_sortino(pnl),
-        }
-        metric_pd = (
-            pd.concat(metric_dict, axis=1).sort_values(by='eff_sharpe', ascending=False, axis=0)
-            if isinstance(pos, pd.DataFrame) 
-            else pd.Series(metric_dict).to_frame('overall').T
+        return (
+            pd.concat({
+                'ftrading': Strategy.compute_ftrading(pos),
+                'turnover': Strategy.compute_turnover(pos, pos_change),
+                'pnl_per_trade': Strategy.compute_pnl_per_trade(pnl, pos_change),
+                'eff_sharpe': Strategy.compute_sharpe(pnl[pnl!=0]),
+                'raw_sharpe': Strategy.compute_sharpe(pnl),
+                'r_sharpe': Strategy.compute_sharpe(pnl.fillna(0).rolling(252).mean()),
+                'maxdrawdown': Strategy.compute_maxdrawdown(pnl),
+                'calamar': Strategy.compute_calamar(pnl),
+                'sortino': Strategy.comput_sortino(pnl),
+            }, axis=1)
+            .sort_values(by='eff_sharpe', ascending=False, axis=0)
+            .dropna(how='all', axis=0)
         )
-        return metric_pd.dropna(how='all', axis=0)
     
     def ftrading(self:'Strategy', training_date:str = None) -> pd.Series:
         pos = self.position.loc[:, training_date:]
@@ -275,14 +276,12 @@ class Strategy:
             pos_change = pos_change.groupby(pos_change.index.date).sum()
             pnl = pnl.groupby(pnl.index.date).sum()
 
-        pnl_total = pnl.sum(1)
-        pos_total = pos.abs().sum(1)
-        pos_change_total = pos_change.sum(1)
+        print(Strategy.compute_metrics(
+            pos.abs().sum(1), pnl.sum(1), pos_change.sum(1)
+        ))
 
-        print(Strategy.compute_metrics(pos_total, pnl_total, pos_change_total))
-
-        Utilitaires.plotx( Strategy.risk * pnl_total.cumsum() / pnl_total.std(), title='pnl total' ).show()
-        Utilitaires.plotx( Strategy.risk * Strategy.compute_drawdown(pnl_total), title='drawdown' ).show()
+        Utilitaires.plotx( Strategy.risk * pnl.sum(1).cumsum() / pnl.sum(1).std(), title='pnl total' ).show()
+        Utilitaires.plotx( Strategy.risk * Strategy.compute_drawdown(pnl.sum(1)), title='drawdown' ).show()
 
         if len(pnl.columns) < 30:
             Utilitaires.plotx( Strategy.risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
