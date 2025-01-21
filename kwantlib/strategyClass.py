@@ -148,7 +148,7 @@ class Strategy:
         return - Strategy.compute_drawdown(pnl).min()
     
     @staticmethod
-    def compute_colmar(pnl:pd.DataFrame) -> pd.Series:
+    def compute_calamar(pnl:pd.DataFrame) -> pd.Series:
         if hasattr(pnl.index, 'date'):
             pnl = pnl.groupby(pnl.index.date).sum()
         return 252 * pnl.mean() / Strategy.compute_maxdrawdown(pnl)
@@ -174,7 +174,7 @@ class Strategy:
             'raw_sharpe': Strategy.compute_sharpe(pnl, is_effective=False),
             'r_sharpe': Strategy.compute_sharpe(pnl.fillna(0).rolling(252).mean()),
             'maxdrawdown': Strategy.compute_maxdrawdown(pnl),
-            'colmar': Strategy.compute_colmar(pnl),
+            'calamar': Strategy.compute_calamar(pnl),
             'sortino': Strategy.comput_sortino(pnl),
         }
         metric_pd = (
@@ -215,9 +215,9 @@ class Strategy:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
         return Strategy.compute_maxdrawdown(pnl)
     
-    def colmar(self:'Strategy', training_date:str = None) -> pd.Series:
+    def calamar(self:'Strategy', training_date:str = None) -> pd.Series:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Strategy.compute_colmar(pnl)
+        return Strategy.compute_calamar(pnl)
     
     def sortino(self:'Strategy', training_date:str = None) -> pd.Series:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
