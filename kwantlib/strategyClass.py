@@ -153,7 +153,7 @@ class Strategy:
         return 16 * Strategy.compute_sharpe(pnl) / Strategy.compute_maxdrawdown(pnl)
     
     @staticmethod
-    def comput_sortino(pnl:pd.DataFrame) -> pd.Series:
+    def compute_sortino(pnl:pd.DataFrame) -> pd.Series:
         if hasattr(pnl.index, 'date'):
             pnl = pnl.groupby(pnl.index.date).sum()
         return 16 * pnl.mean() / pnl[pnl < 0].std()
