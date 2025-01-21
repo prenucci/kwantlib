@@ -28,7 +28,7 @@ class Strategy:
         if vol is None:
             self.volatility = self.returns.apply( lambda x: x.dropna().rolling(15).std() )
         else:
-            self.volatility = Utilitaires.reindex_like(vol, self.returns)
+            self.volatility = Utilitaires.custom_reindex_like(vol, self.returns).ffill()
     
     def _reinit(
             self:'Strategy', signal:pd.DataFrame = None, returns:pd.DataFrame = None, is_vol_target:bool = None
@@ -49,17 +49,15 @@ class Strategy:
         
     @staticmethod 
     def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame, is_vol_target:bool = True) -> pd.DataFrame:
-        signal = Utilitaires.reindex_like(signal, volatility)
+        signal = Utilitaires.custom_reindex_like(signal, volatility).ffill()
         pos = signal.div(volatility, axis = 0, level = 0) if is_vol_target else signal  
         pos = pos.where(Utilitaires.zscore(pos).abs() < 5, np.nan)
-        return Utilitaires.reindex_like(pos, volatility).ffill()
+        return Utilitaires.custom_reindex_like(pos, volatility).ffill()
     
     @staticmethod
     def compute_pnl(position:pd.DataFrame, returns:pd.DataFrame) -> pd.DataFrame:
         def _pnl(pos:pd.DataFrame, ret:pd.Series) -> pd.DataFrame: 
-            # necessaire de faire la multiplication sur les index de ret sinon 
-            # introduction de biais style "move the pos at days when you can't"
-            pos = pos.reindex(ret.index, method='ffill').ffill()
+            pos = Utilitaires.custom_reindex_like(pos, ret)
             return pos.shift(1).multiply(ret, axis=0)
         
         pnl = pd.concat([
