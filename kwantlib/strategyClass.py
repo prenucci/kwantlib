@@ -134,11 +134,9 @@ class Strategy:
         return 1e4 * pnl.mean() / pos_change.mean()
     
     @staticmethod
-    def compute_sharpe(pnl:pd.DataFrame, is_effective:bool = True) -> pd.Series:
+    def compute_sharpe(pnl:pd.DataFrame) -> pd.Series:
         if hasattr(pnl.index, 'date'):
             pnl = pnl.groupby(pnl.index.date).sum()
-        if is_effective:
-            pnl = pnl[pnl!=0]
         return 16 * pnl.mean() / pnl.std()
     
     @staticmethod
@@ -170,8 +168,8 @@ class Strategy:
             'ftrading': Strategy.compute_ftrading(pos),
             'turnover': Strategy.compute_turnover(pos, pos_change),
             'pnl_per_trade': Strategy.compute_pnl_per_trade(pnl, pos_change),
-            'eff_sharpe': Strategy.compute_sharpe(pnl),
-            'raw_sharpe': Strategy.compute_sharpe(pnl, is_effective=False),
+            'eff_sharpe': Strategy.compute_sharpe(pnl[pnl!=0]),
+            'raw_sharpe': Strategy.compute_sharpe(pnl),
             'r_sharpe': Strategy.compute_sharpe(pnl.fillna(0).rolling(252).mean()),
             'maxdrawdown': Strategy.compute_maxdrawdown(pnl),
             'calamar': Strategy.compute_calamar(pnl),
