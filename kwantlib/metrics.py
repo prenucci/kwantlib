@@ -8,6 +8,8 @@ class Metrics:
 
     n_jobs = mp.cpu_count() - 2
 
+    ### Core functions ###  
+
     @staticmethod 
     def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame) -> pd.DataFrame:
         signal = Utilitaires.custom_reindex_like(signal, volatility)
@@ -29,7 +31,7 @@ class Metrics:
             for col in returns.columns
         )
         with mp.Pool(Metrics.n_jobs) as pool:
-            results = pool.map(Metrics._compute_pnl_ds, tasks)
+            results = pool.starmap(Metrics._compute_pnl_ds, tasks)
         
         pnl = pd.concat(results, axis = 1)
 
@@ -46,6 +48,40 @@ class Metrics:
                 return Metrics._compute_pnl_df(position, returns)
             case _:
                 raise ValueError('returns must be a pd.DataFrame or pd.Series')
+            
+    @staticmethod
+    def _compute_cost_ds(
+        pos_change:pd.DataFrame, bid_ask_spread:pd.Series, fee_per_transaction:float
+    ) -> pd.Series:
+        assert bid_ask_spread.notna().all(), 'returns must not contain nan'
+        pos_change = pos_change.reindex(bid_ask_spread.index, method='ffill').ffill()
+        return (bid_ask_spread / 2 + fee_per_transaction) * pos_change 
+    
+    @staticmethod
+    def _compute_cost_df(
+        pos_change:pd.DataFrame, bid_ask_spread:pd.DataFrame, fee_per_transaction:float
+    ) -> pd.DataFrame:
+        tasks = (
+            ( pos_change.loc[:, [col]], bid_ask_spread.loc[:, col].dropna(), fee_per_transaction ) 
+            for col in pos_change.columns
+        )
+        with mp.Pool(Metrics.n_jobs) as pool:
+            results = pool.starmap(Metrics._compute_cost_ds, tasks)
+        return pd.concat(results, axis = 1)
+
+    @staticmethod
+    def compute_cost(
+        pos_change:pd.DataFrame, bid_ask_spread:pd.DataFrame | pd.Series, fee_per_transaction:float
+    ) -> pd.DataFrame:
+        match type(bid_ask_spread):
+            case pd.Series:
+                return Metrics._compute_cost_ds(pos_change, bid_ask_spread, fee_per_transaction)
+            case pd.DataFrame:
+                return Metrics._compute_cost_df(pos_change, bid_ask_spread, fee_per_transaction)
+            case _:
+                raise ValueError('bid_ask_spread must be a pd.Series or pd.DataFrame')
+
+    ### Metrics ###
     
     @staticmethod
     def compute_returns(pnl:pd.DataFrame, pos:pd.DataFrame) -> pd.DataFrame:
@@ -56,18 +92,11 @@ class Metrics:
     def compute_drawdown(pnl:pd.DataFrame) -> pd.Series:
         return - ( pnl.cumsum().cummax() - pnl.cumsum() ) / pnl.std()
     
-
     @staticmethod
     def compute_sharpe(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
         if hasattr(pnl.index, 'date'):
             pnl = pnl.groupby(pnl.index.date).sum()
         return 16 * pnl.mean() / pnl.std()
-    
-    @staticmethod
-    def compute_ftrading(pos:pd.DataFrame | pd.Series) -> pd.Series | float:
-        if hasattr(pos.index, 'date'):
-            pos = pos.abs().groupby(pos.index.date).mean()
-        return (pos > 0).mean()
     
     @staticmethod
     def compute_turnover(
@@ -82,12 +111,6 @@ class Metrics:
         return 100 * pos_change.mean() / pos_abs.mean() 
     
     @staticmethod
-    def compute_mean_returns(
-        pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series
-    ) -> pd.Series | float:
-        return pnl.mean() / pos.abs().mean()
-    
-    @staticmethod
     def compute_pnl_per_trade(
         pnl:pd.DataFrame | pd.Series, pos_change:pd.DataFrame | pd.Series
     ) -> pd.Series | float:
@@ -95,6 +118,12 @@ class Metrics:
             pos_change = pos_change.groupby(pos_change.index.date).sum()
             pnl = pnl.groupby(pnl.index.date).sum()
         return 1e4 * pnl.mean() / pos_change.mean()
+    
+    @staticmethod
+    def compute_mean_returns(
+        pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series
+    ) -> pd.Series | float:
+        return 100 * pnl.mean() / pos.abs().mean()
     
     @staticmethod
     def compute_maxdrawdown(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
@@ -116,6 +145,12 @@ class Metrics:
         return 16 * pnl.mean() / pnl[pnl < 0].std()
     
     @staticmethod
+    def compute_ftrading(pos:pd.DataFrame | pd.Series) -> pd.Series | float:
+        if hasattr(pos.index, 'date'):
+            pos = pos.abs().groupby(pos.index.date).mean()
+        return (pos > 0).mean()
+    
+    @staticmethod
     def _compute_metrics_ds(pos:pd.Series, pnl:pd.Series, pos_change:pd.Series) -> pd.Series:
         return pd.Series({
             'eff_sharpe': Metrics.compute_sharpe(pnl[pnl!=0]),
@@ -123,11 +158,11 @@ class Metrics:
             'turnover': Metrics.compute_turnover(pos, pos_change),
             'pnl_per_trade': Metrics.compute_pnl_per_trade(pnl, pos_change),
             'mean_returns': Metrics.compute_mean_returns(pnl, pos),
-            'ftrading': Metrics.compute_ftrading(pos),
-            'r_sharpe': Metrics.compute_sharpe(pnl.fillna(0).rolling(252).mean()),
             'maxdrawdown': Metrics.compute_maxdrawdown(pnl),
             'calamar': Metrics.compute_calamar(pnl),
             'sortino': Metrics.compute_sortino(pnl),
+            'ftrading': Metrics.compute_ftrading(pos),
+            'r_sharpe': Metrics.compute_sharpe(pnl.fillna(0).rolling(252).mean()),
         }, name=pos.name)
     
     @staticmethod
@@ -139,11 +174,8 @@ class Metrics:
         with mp.Pool(Metrics.n_jobs) as pool:
             results = pool.map(Metrics._compute_metrics_ds, tasks)
         
-        return (
-            pd.concat(results, axis = 0)
-            .sort_values(by='eff_sharpe', ascending=False, axis=0)
-            .dropna(how='all', axis=0)
-        )
+        return pd.concat(results, axis = 0).sort_values(by='eff_sharpe', ascending=False, axis=0)
+        
     
     @staticmethod
     def compute_metrics(
@@ -173,7 +205,7 @@ class Metrics:
             pos_change = pos_change.groupby(pos_change.index.date).sum()
             pnl = pnl.groupby(pnl.index.date).sum()
 
-        print(Metrics.compute_metrics(pos.abs().sum(1), pnl.sum(1), pos_change.sum(1)))
+        print(Metrics._compute_metrics_ds(pos.abs().sum(1), pnl.sum(1), pos_change.sum(1)))
 
         Utilitaires.plotx( risk * pnl.sum(1).cumsum() / pnl.sum(1).std(), title='pnl total' ).show()
         Utilitaires.plotx( risk * Metrics.compute_drawdown(pnl.sum(1)), title='drawdown' ).show()
@@ -181,4 +213,4 @@ class Metrics:
         if len(pnl.columns) < 30:
             Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
 
-        return Metrics.compute_metrics(pos, pnl, pos_change)
+        return Metrics._compute_metrics_df(pos, pnl, pos_change)

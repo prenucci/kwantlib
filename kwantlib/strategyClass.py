@@ -81,9 +81,9 @@ class Strategy:
         
     ### Metrics
     
-    def ftrading(self:'Strategy', training_date:str = None) -> pd.Series:
-        pos = self.position.loc[:, training_date:]
-        return Metrics.compute_ftrading(pos)
+    def sharpe(self:'Strategy', training_date:str = None, is_effective:bool = True) -> pd.Series:
+        pnl = self.pnl.loc[:, training_date:].fillna(0)
+        return Metrics.compute_sharpe(pnl[pnl!=0] if is_effective else pnl)
     
     def turnover(self:'Strategy', training_date:str = None) -> pd.Series:
         pos = self.position.loc[:, training_date:]
@@ -93,23 +93,11 @@ class Strategy:
         pos_change = self.position.loc[:, training_date:].diff().abs()
         pnl = self.pnl.loc[:, training_date:].fillna(0)
         return Metrics.compute_pnl_per_trade(pnl, pos_change)
-    
-    def sharpe(self:'Strategy', training_date:str = None) -> pd.Series:
-        pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Metrics.compute_sharpe(pnl)
-    
-    def raw_sharpe(self:'Strategy', training_date:str = None) -> pd.Series:
-        pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Metrics.compute_sharpe(pnl, is_effective=False)
-    
+        
     def mean_returns(self:'Strategy', training_date:str = None) -> pd.Series:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
         pos = self.position.loc[:, training_date:].fillna(0)
         return Metrics.compute_mean_returns(pnl, pos)
-    
-    def r_sharpe(self:'Strategy', training_date:str = None) -> pd.Series:
-        pnl = self.pnl.fillna(0).rolling('252D').mean().loc[:, training_date:]
-        return Metrics.compute_sharpe(pnl)
     
     def maxdrawdown(self:'Strategy', training_date:str = None) -> pd.Series:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
@@ -123,11 +111,20 @@ class Strategy:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
         return Metrics.compute_sortino(pnl)
     
+    def ftrading(self:'Strategy', training_date:str = None) -> pd.Series:
+        pos = self.position.loc[:, training_date:]
+        return Metrics.compute_ftrading(pos)
+    
+    def r_sharpe(self:'Strategy', training_date:str = None) -> pd.Series:
+        pnl = self.pnl.fillna(0).rolling('252D').mean().loc[:, training_date:]
+        return Metrics.compute_sharpe(pnl)
+    
     def metrics(self:'Strategy', training_date:str = None) -> pd.Series:
         pos = self.position.loc[:, training_date:]
         pnl = self.pnl.loc[:, training_date:].fillna(0)
         pos_change = pos.diff().abs()
         return Metrics.compute_metrics(pos, pnl, pos_change)
+    
 
     ### Operators
 
@@ -198,24 +195,12 @@ class StrategyCost(Strategy):
             is_vol_target = is_vol_target if is_vol_target is not None else self.is_vol_target,
         )
 
-    @staticmethod
-    def compute_cost(
-        pos_change:pd.DataFrame, bid_ask_spread:pd.DataFrame, fee_per_transaction:float
-    ) -> pd.DataFrame:
-        
-        def _cost(pos_change_:pd.Series, bid_ask_spread_:pd.Series) -> pd.Series:
-            pos_change_ = pos_change_.reindex(bid_ask_spread_.index, method='ffill').ffill().fillna(0)
-            return (bid_ask_spread_ / 2 + fee_per_transaction) * pos_change_ 
-        
-        return pd.concat([
-            _cost(pos_change.loc[:, col], bid_ask_spread.loc[:, col].dropna()) 
-            for col in bid_ask_spread.columns
-        ], axis = 1)
-
     @property
     def cost(self:'StrategyCost') -> pd.DataFrame:
-        return StrategyCost.compute_cost(
-            self.position.diff().abs(), self.bid_ask_spread, StrategyCost.fee_per_transaction
+        return Metrics.compute_cost(
+            self.position.diff().abs(), 
+            self.bid_ask_spread, 
+            StrategyCost.fee_per_transaction
         )
     
     @property
