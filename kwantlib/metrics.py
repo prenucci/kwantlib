@@ -20,9 +20,9 @@ class Metrics:
         assert returns.notna().all(), 'returns must not contain nan'
         pos = position.reindex(returns.index, method='ffill')
         return pos.shift(1).multiply(returns, axis=0)
-
+    
     @staticmethod
-    def compute_pnl(position:pd.DataFrame, returns:pd.DataFrame) -> pd.DataFrame:
+    def _compute_pnl_df(position:pd.DataFrame, returns:pd.DataFrame) -> pd.DataFrame:
         
         tasks = (
             ( position.loc[:, [col]], returns.loc[:, col].dropna() ) 
@@ -36,6 +36,16 @@ class Metrics:
         assert not pnl.apply(np.isinf).any().any(), 'inf in your pnl'
 
         return pnl
+    
+    @staticmethod
+    def compute_pnl(position:pd.DataFrame, returns:pd.DataFrame | pd.Series) -> pd.DataFrame:
+        match type(returns):
+            case pd.Series:
+                return Metrics._compute_pnl_ds(position, returns.dropna())
+            case pd.DataFrame:
+                return Metrics._compute_pnl_df(position, returns)
+            case _:
+                raise ValueError('returns must be a pd.DataFrame or pd.Series')
     
     @staticmethod
     def compute_returns(pnl:pd.DataFrame, pos:pd.DataFrame) -> pd.DataFrame:
