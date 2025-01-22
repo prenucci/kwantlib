@@ -71,9 +71,7 @@ class Strategy:
     
     @property
     def return_pnl(self:'Strategy') -> pd.Series:
-        pnl = self.pnl.fillna(0).sum(1)
-        pos_abs = self.position.abs().sum(1)
-        return pnl.div( pos_abs.shift(1) ).fillna(0)
+        return Metrics.compute_returns(self.pnl, self.position)
     
     @property
     def compounded_value(self:'Strategy') -> pd.Series:

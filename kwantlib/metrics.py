@@ -25,18 +25,11 @@ class Metrics:
     
     @staticmethod
     def _compute_pnl_df(position:pd.DataFrame, returns:pd.DataFrame) -> pd.DataFrame:
-        
-        tasks = (
-            ( position.loc[:, [col]], returns.loc[:, col].dropna() ) 
-            for col in returns.columns
-        )
+        tasks = ( ( position.loc[:, [col]], returns.loc[:, col].dropna() ) for col in returns.columns )
         with mp.Pool(Metrics.n_jobs) as pool:
             results = pool.starmap(Metrics._compute_pnl_ds, tasks)
-        
         pnl = pd.concat(results, axis = 1)
-
         assert not pnl.apply(np.isinf).any().any(), 'inf in your pnl'
-
         return pnl
     
     @staticmethod
@@ -84,12 +77,22 @@ class Metrics:
     ### Metrics ###
     
     @staticmethod
-    def compute_returns(pnl:pd.DataFrame, pos:pd.DataFrame) -> pd.DataFrame:
+    def compute_return_pnl(pos:pd.DataFrame, pnl:pd.DataFrame) -> pd.DataFrame:
         assert pos.columns.equals(pnl.columns), 'pos and pnl must have the same columns'
+        if hasattr(pos.index, 'date'):
+            pos = pos.groupby(pos.index.date).mean()
+            pnl = pnl.groupby(pnl.index.date).sum()
         return pnl.div(pos.abs().shift(1), axis=0)
     
     @staticmethod
+    def compute_compounded_value(pos:pd.DataFrame, pnl:pd.DataFrame) -> pd.DataFrame:
+        return_pnl = Metrics.compute_return_pnl(pos, pnl)
+        return (1 + return_pnl).cumprod()
+    
+    @staticmethod
     def compute_drawdown(pnl:pd.DataFrame) -> pd.Series:
+        if hasattr(pnl.index, 'date'):
+            pnl = pnl.groupby(pnl.index.date).sum()
         return - ( pnl.cumsum().cummax() - pnl.cumsum() ) / pnl.std()
     
     @staticmethod
@@ -121,9 +124,12 @@ class Metrics:
     
     @staticmethod
     def compute_mean_returns(
-        pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series
+        pos:pd.DataFrame | pd.Series, pnl:pd.DataFrame | pd.Series,
     ) -> pd.Series | float:
-        return 100 * pnl.mean() / pos.abs().mean()
+        if hasattr(pos.index, 'date'):
+            pos = pos.groupby(pos.index.date).mean()
+            pnl = pnl.groupby(pnl.index.date).sum()
+        return 100 * 252 *pnl.mean() / pos.abs().mean()
     
     @staticmethod
     def compute_maxdrawdown(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
@@ -135,7 +141,6 @@ class Metrics:
     def compute_calamar(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
         if hasattr(pnl.index, 'date'):
             pnl = pnl.groupby(pnl.index.date).sum()
-        return 252 * pnl.mean() / Metrics.compute_maxdrawdown(pnl)
         return 16 * Metrics.compute_sharpe(pnl) / Metrics.compute_maxdrawdown(pnl)
     
     @staticmethod
@@ -149,6 +154,8 @@ class Metrics:
         if hasattr(pos.index, 'date'):
             pos = pos.abs().groupby(pos.index.date).mean()
         return (pos > 0).mean()
+    
+    ### Backtest ###
     
     @staticmethod
     def _compute_metrics_ds(pos:pd.Series, pnl:pd.Series, pos_change:pd.Series) -> pd.Series:
@@ -176,7 +183,6 @@ class Metrics:
         
         return pd.concat(results, axis = 0).sort_values(by='eff_sharpe', ascending=False, axis=0)
         
-    
     @staticmethod
     def compute_metrics(
         pos:pd.DataFrame | pd.Series, pnl:pd.DataFrame | pd.Series, pos_change:pd.DataFrame | pd.Series = None
