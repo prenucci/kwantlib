@@ -4,6 +4,7 @@ import numpy  as np
 from typing import Iterable, Callable, Literal, Any
 
 from .utilitaires import Utilitaires
+from .metrics import Metrics
 from .operators import Operator
 
 
@@ -56,43 +57,17 @@ class Strategy:
     
     #### Properties
         
-    @staticmethod 
-    def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame) -> pd.DataFrame:
-        signal = Utilitaires.custom_reindex_like(signal, volatility).ffill()
-        pos = signal.div(volatility, axis = 0, level = 0) 
-        pos = pos.where(Utilitaires.zscore(pos).abs() < 5, np.nan)
-        return Utilitaires.custom_reindex_like(pos, volatility).ffill()
-    
-    @staticmethod
-    def compute_pnl(position:pd.DataFrame, returns:pd.DataFrame) -> pd.DataFrame:
-        def _pnl(pos:pd.DataFrame, ret:pd.Series) -> pd.DataFrame: 
-            pos = Utilitaires.custom_reindex_like(pos, ret)
-            return pos.shift(1).multiply(ret, axis=0)
-        
-        pnl = pd.concat([
-            _pnl(position.loc[:, [col]], returns.loc[:, col].dropna()) 
-            for col in returns.columns 
-        ], axis = 1)
-
-        assert not pnl.apply(np.isinf).any().any(), 'inf in your pnl'
-
-        return pnl
-    
-    @staticmethod
-    def compute_drawdown(pnl:pd.DataFrame) -> pd.DataFrame:
-        return - ( pnl.cumsum().cummax() - pnl.cumsum() ) / pnl.std()
-        
     @property
     def position(self: 'Strategy') -> pd.DataFrame:
-        return Strategy.compute_position(self.signal, self.volatility)
+        return Metrics.compute_position(self.signal, self.volatility)
     
     @property
     def pnl(self: 'Strategy') -> pd.DataFrame:
-        return Strategy.compute_pnl(self.position, self.returns)
+        return Metrics.compute_pnl(self.position, self.returns)
 
     @property
     def drawdown(self:'Strategy') -> pd.DataFrame:
-        return Strategy.compute_drawdown(self.pnl)
+        return Metrics.compute_drawdown(self.pnl)
     
     @property
     def return_pnl(self:'Strategy') -> pd.Series:
@@ -105,124 +80,54 @@ class Strategy:
         return self.return_pnl.apply(lambda x: (1 + x).cumprod())
         
     ### Metrics
-
-    @staticmethod
-    def compute_ftrading(pos:pd.DataFrame) -> pd.Series:
-        if hasattr(pos.index, 'date'):
-            pos = pos.abs().groupby(pos.index.date).mean()
-        return (pos > 0).mean()
-    
-    @staticmethod
-    def compute_turnover(pos:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.Series:
-        pos_abs = pos.abs()
-        if pos_change is None:
-            pos_change = pos.diff().abs()
-        if hasattr(pos.index, 'date'):
-            pos_abs = pos_abs.groupby(pos_abs.index.date).mean()
-            pos_change = pos_change.groupby(pos_change.index.date).sum()
-        return 100 * pos_change.mean() / pos_abs.mean() 
-    
-    @staticmethod
-    def compute_pnl_per_trade(pnl:pd.DataFrame, pos_change:pd.DataFrame) -> pd.Series:
-        if hasattr(pos_change.index, 'date'):
-            pos_change = pos_change.groupby(pos_change.index.date).sum()
-            pnl = pnl.groupby(pnl.index.date).sum()
-        return 1e4 * pnl.mean() / pos_change.mean()
-    
-    @staticmethod
-    def compute_sharpe(pnl:pd.DataFrame) -> pd.Series:
-        if hasattr(pnl.index, 'date'):
-            pnl = pnl.groupby(pnl.index.date).sum()
-        return 16 * pnl.mean() / pnl.std()
-    
-    @staticmethod
-    def compute_maxdrawdown(pnl:pd.DataFrame) -> pd.Series:
-        if hasattr(pnl.index, 'date'):
-            pnl = pnl.groupby(pnl.index.date).sum()
-        return - Strategy.compute_drawdown(pnl).min()
-    
-    @staticmethod
-    def compute_calamar(pnl:pd.DataFrame) -> pd.Series:
-        if hasattr(pnl.index, 'date'):
-            pnl = pnl.groupby(pnl.index.date).sum()
-        return 252 * pnl.mean() / Strategy.compute_maxdrawdown(pnl)
-        return 16 * Strategy.compute_sharpe(pnl) / Strategy.compute_maxdrawdown(pnl)
-    
-    @staticmethod
-    def compute_sortino(pnl:pd.DataFrame) -> pd.Series:
-        if hasattr(pnl.index, 'date'):
-            pnl = pnl.groupby(pnl.index.date).sum()
-        return 16 * pnl.mean() / pnl[pnl < 0].std()
-
-    @staticmethod
-    def compute_metrics(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.DataFrame:
-        
-        if pos_change is None:
-            pos_change = pos.diff().abs() 
-        
-        if isinstance(pos, pd.Series) and isinstance(pnl, pd.Series) and isinstance(pos_change, pd.Series):
-            pos, pnl, pos_change = pos.to_frame('overall'), pnl.to_frame('overall'), pos_change.to_frame('overall')
-
-        return (
-            pd.concat({
-                'ftrading': Strategy.compute_ftrading(pos),
-                'turnover': Strategy.compute_turnover(pos, pos_change),
-                'pnl_per_trade': Strategy.compute_pnl_per_trade(pnl, pos_change),
-                'eff_sharpe': Strategy.compute_sharpe(pnl[pnl!=0]),
-                'raw_sharpe': Strategy.compute_sharpe(pnl),
-                'r_sharpe': Strategy.compute_sharpe(pnl.fillna(0).rolling(252).mean()),
-                'maxdrawdown': Strategy.compute_maxdrawdown(pnl),
-                'calamar': Strategy.compute_calamar(pnl),
-                'sortino': Strategy.comput_sortino(pnl),
-            }, axis=1)
-            .sort_values(by='eff_sharpe', ascending=False, axis=0)
-            .dropna(how='all', axis=0)
-        )
     
     def ftrading(self:'Strategy', training_date:str = None) -> pd.Series:
         pos = self.position.loc[:, training_date:]
-        return Strategy.compute_ftrading(pos)
+        return Metrics.compute_ftrading(pos)
     
     def turnover(self:'Strategy', training_date:str = None) -> pd.Series:
         pos = self.position.loc[:, training_date:]
-        return Strategy.compute_turnover(pos)
+        return Metrics.compute_turnover(pos)
     
     def pnl_per_trade(self:'Strategy', training_date:str = None) -> pd.Series:
         pos_change = self.position.loc[:, training_date:].diff().abs()
         pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Strategy.compute_pnl_per_trade(pnl, pos_change)
+        return Metrics.compute_pnl_per_trade(pnl, pos_change)
     
     def sharpe(self:'Strategy', training_date:str = None) -> pd.Series:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Strategy.compute_sharpe(pnl)
+        return Metrics.compute_sharpe(pnl)
     
     def raw_sharpe(self:'Strategy', training_date:str = None) -> pd.Series:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Strategy.compute_sharpe(pnl, is_effective=False)
+        return Metrics.compute_sharpe(pnl, is_effective=False)
+    
+    def mean_returns(self:'Strategy', training_date:str = None) -> pd.Series:
+        pnl = self.pnl.loc[:, training_date:].fillna(0)
+        pos = self.position.loc[:, training_date:].fillna(0)
+        return Metrics.compute_mean_returns(pnl, pos)
     
     def r_sharpe(self:'Strategy', training_date:str = None) -> pd.Series:
-        if hasattr(self.pnl.index, 'date'):
-            pnl = self.pnl.groupby(self.pnl.index.date).sum()
-        pnl = pnl.loc[:, training_date:].fillna(0).rolling(252).mean()
-        return Strategy.compute_sharpe(pnl)
+        pnl = self.pnl.fillna(0).rolling('252D').mean().loc[:, training_date:]
+        return Metrics.compute_sharpe(pnl)
     
     def maxdrawdown(self:'Strategy', training_date:str = None) -> pd.Series:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Strategy.compute_maxdrawdown(pnl)
+        return Metrics.compute_maxdrawdown(pnl)
     
     def calamar(self:'Strategy', training_date:str = None) -> pd.Series:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Strategy.compute_calamar(pnl)
+        return Metrics.compute_calamar(pnl)
     
     def sortino(self:'Strategy', training_date:str = None) -> pd.Series:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Strategy.compute_sortino(pnl)
+        return Metrics.compute_sortino(pnl)
     
     def metrics(self:'Strategy', training_date:str = None) -> pd.Series:
         pos = self.position.loc[:, training_date:]
         pnl = self.pnl.loc[:, training_date:].fillna(0)
         pos_change = pos.diff().abs()
-        return Strategy.compute_metrics(pos, pnl, pos_change)
+        return Metrics.compute_metrics(pos, pnl, pos_change)
 
     ### Operators
 
@@ -262,36 +167,15 @@ class Strategy:
     
     ### Backtest
 
-    @staticmethod
-    def backtest(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None) -> pd.DataFrame:   
-        if pos_change is None:
-            pos_change = pos.diff().abs()
-
-        if hasattr(pos.index, 'date'):
-            pos = pos.groupby(pos.index.date).mean()
-            pos_change = pos_change.groupby(pos_change.index.date).sum()
-            pnl = pnl.groupby(pnl.index.date).sum()
-
-        print(Strategy.compute_metrics(
-            pos.abs().sum(1), pnl.sum(1), pos_change.sum(1)
-        ))
-
-        Utilitaires.plotx( Strategy.risk * pnl.sum(1).cumsum() / pnl.sum(1).std(), title='pnl total' ).show()
-        Utilitaires.plotx( Strategy.risk * Strategy.compute_drawdown(pnl.sum(1)), title='drawdown' ).show()
-
-        if len(pnl.columns) < 30:
-            Utilitaires.plotx( Strategy.risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
-
-        return Strategy.compute_metrics(pos, pnl)
-
-    def show(self:'Strategy', training_date:str=None) -> pd.DataFrame:
+    def backtest(self:'Strategy', training_date:str=None) -> pd.DataFrame:
         if self.returns.columns.nlevels > 1:
             self = self.proj()
 
-        return Strategy.backtest(
+        return Metrics.backtest(
             pos = self.position.loc[training_date:, :], 
             pnl = self.pnl.loc[training_date:, :].fillna(0), 
-            pos_change = self.position.loc[training_date:, :].diff().abs()
+            pos_change = self.position.loc[training_date:, :].diff().abs(),
+            risk = Strategy.risk
         )
 
 class StrategyCost(Strategy):
