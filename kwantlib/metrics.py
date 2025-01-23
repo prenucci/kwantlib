@@ -170,7 +170,7 @@ class Metrics:
             'sortino': Metrics.compute_sortino(pnl),
             'ftrading': Metrics.compute_ftrading(pos),
             'r_sharpe': Metrics.compute_sharpe(pnl.fillna(0).rolling(252).mean()),
-        }, name=pos.name)
+        })
     
     @staticmethod
     def _compute_metrics_df(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame) -> pd.DataFrame:
@@ -181,7 +181,9 @@ class Metrics:
         with mp.Pool(Metrics.n_jobs) as pool:
             results = pool.starmap(Metrics._compute_metrics_ds, tasks)
         
-        return pd.concat(results, axis = 0).sort_values(by='eff_sharpe', ascending=False, axis=0)
+        return pd.concat({
+            col:metric_col for col, metric_col in zip(pos.columns, results)
+        }, axis = 0).sort_values(by='eff_sharpe', ascending=False, axis=0)
         
     @staticmethod
     def compute_metrics(
