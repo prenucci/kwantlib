@@ -179,7 +179,7 @@ class Metrics:
             for col in pos.columns
         )
         with mp.Pool(Metrics.n_jobs) as pool:
-            results = pool.map(Metrics._compute_metrics_ds, tasks)
+            results = pool.starmap(Metrics._compute_metrics_ds, tasks)
         
         return pd.concat(results, axis = 0).sort_values(by='eff_sharpe', ascending=False, axis=0)
         
