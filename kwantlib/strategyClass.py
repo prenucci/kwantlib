@@ -179,18 +179,24 @@ class StrategyCost(Strategy):
     
     def __init__(
             self:'StrategyCost', signal:pd.DataFrame, returns:pd.DataFrame, 
-            bid_ask_spread:pd.DataFrame, is_vol_target:bool = True,
+            bid_ask_spread:pd.DataFrame, vol_target_window:int|str=15, 
+            vol:pd.DataFrame = None
         ):
         assert bid_ask_spread.columns.equals(returns.columns), 'bid_ask_spread and returns must have the same columns'
-        super().__init__(signal, returns, is_vol_target)
+        super().__init__(signal, returns, vol_target_window, vol)
         self.bid_ask_spread = bid_ask_spread
 
-    def _reinit(self:'StrategyCost', signal:pd.DataFrame = None, returns:pd.DataFrame = None, bid_ask_spread:pd.DataFrame = None, is_vol_target:bool = None) -> 'StrategyCost':
+    def _reinit(
+            self:'StrategyCost', signal:pd.DataFrame = None, returns:pd.DataFrame = None, 
+            bid_ask_spread:pd.DataFrame = None, vol_target_window:int|str = None, 
+            vol:pd.DataFrame = None
+        ) -> 'StrategyCost':
         return StrategyCost(
             signal = signal if signal is not None else self.signal.copy(),
             returns= returns if returns is not None else self.returns.copy(),
             bid_ask_spread = bid_ask_spread if bid_ask_spread is not None else self.bid_ask_spread.copy(),
-            is_vol_target = is_vol_target if is_vol_target is not None else self.is_vol_target,
+            vol_target_window = vol_target_window if vol_target_window is not None else self.vol_target_window,
+            vol = vol if vol is not None else self.volatility.copy(),
         )
 
     @property
