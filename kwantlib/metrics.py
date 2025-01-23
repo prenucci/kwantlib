@@ -93,7 +93,7 @@ class Metrics:
     def compute_drawdown(pnl:pd.DataFrame) -> pd.Series:
         if hasattr(pnl.index, 'date'):
             pnl = pnl.groupby(pnl.index.date).sum()
-        return - ( pnl.cumsum().cummax() - pnl.cumsum() ) / pnl.std()
+        return - ( pnl.cumsum().cummax() - pnl.cumsum() ) 
     
     @staticmethod
     def compute_sharpe(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
@@ -202,7 +202,6 @@ class Metrics:
             case _:
                 raise ValueError('pos, pnl and pos_change must be of the same type')
         
-
     @staticmethod
     def backtest(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None, risk:float = 1) -> pd.DataFrame:   
         if pos_change is None:
@@ -216,7 +215,7 @@ class Metrics:
         print(Metrics._compute_metrics_ds(pos.abs().sum(1), pnl.sum(1), pos_change.sum(1)))
 
         Utilitaires.plotx( risk * pnl.sum(1).cumsum() / pnl.sum(1).std(), title='pnl total' ).show()
-        Utilitaires.plotx( risk * Metrics.compute_drawdown(pnl.sum(1)), title='drawdown' ).show()
+        Utilitaires.plotx( risk * Metrics.compute_drawdown(pnl.sum(1)) / pnl.sum(1).std(), title='drawdown' ).show()
 
         if len(pnl.columns) < 30:
             Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
