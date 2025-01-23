@@ -182,7 +182,7 @@ class Metrics:
             results = pool.starmap(Metrics._compute_metrics_ds, tasks)
         
         return pd.concat({
-            col:metric_col for col, metric_col in zip(pos.columns, results)
+            col:result_col for col, result_col in zip(pos.columns, results)
         }, axis=1).T.sort_values(by='eff_sharpe', ascending=False)
         
     @staticmethod
