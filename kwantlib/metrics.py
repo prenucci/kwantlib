@@ -195,7 +195,7 @@ class Metrics:
 
         match (type(pos), type(pnl), type(pos_change)):
             case (pd.Series, pd.Series, pd.Series):
-                return Metrics._compute_metrics_ds(pos, pnl, pos_change)
+                return Metrics._compute_metrics_ds(pos, pnl, pos_change).to_frame('overall').T
             case (pd.DataFrame, pd.DataFrame, pd.DataFrame):
                 assert pos.columns.equals(pnl.columns) and pos.columns.equals(pos_change.columns), 'pos, pnl and pos_change must have the same columns'
                 return Metrics._compute_metrics_df(pos, pnl, pos_change)
