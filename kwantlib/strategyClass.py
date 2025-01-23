@@ -71,11 +71,11 @@ class Strategy:
     
     @property
     def return_pnl(self:'Strategy') -> pd.Series:
-        return Metrics.compute_returns(self.pnl, self.position)
+        return Metrics.compute_ret(self.pnl, self.position)
     
     @property
     def compounded_value(self:'Strategy') -> pd.Series:
-        return self.return_pnl.apply(lambda x: (1 + x).cumprod())
+        return Metrics.compute_compounded_value(self.position, self.pnl)
         
     ### Metrics
     
@@ -113,6 +113,15 @@ class Strategy:
         pos = self.position.loc[:, training_date:]
         return Metrics.compute_ftrading(pos)
     
+    def win_rate(self:'Strategy', training_date:str = None) -> pd.Series:
+        pnl = self.pnl.loc[:, training_date:].fillna(0)
+        return Metrics.compute_win_rate(pnl)
+    
+    def long_ratio(self:'Strategy', training_date:str = None) -> pd.Series:
+        pos = self.position.loc[:, training_date:]
+        pnl = self.pnl.loc[:, training_date:].fillna(0)
+        return Metrics.compute_long_ratio(pos, pnl)
+    
     def r_sharpe(self:'Strategy', training_date:str = None) -> pd.Series:
         pnl = self.pnl.fillna(0).rolling('252D').mean().loc[:, training_date:]
         return Metrics.compute_sharpe(pnl)
@@ -122,7 +131,6 @@ class Strategy:
         pnl = self.pnl.loc[:, training_date:].fillna(0)
         pos_change = pos.diff().abs()
         return Metrics.compute_metrics(pos, pnl, pos_change)
-    
 
     ### Operators
 

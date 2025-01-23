@@ -73,11 +73,9 @@ class Metrics:
                 return Metrics._compute_cost_df(pos_change, bid_ask_spread, fee_per_transaction)
             case _:
                 raise ValueError('bid_ask_spread must be a pd.Series or pd.DataFrame')
-
-    ### Metrics ###
-    
+                
     @staticmethod
-    def compute_return_pnl(pos:pd.DataFrame, pnl:pd.DataFrame) -> pd.DataFrame:
+    def compute_ret(pos:pd.DataFrame, pnl:pd.DataFrame) -> pd.DataFrame:
         assert pos.columns.equals(pnl.columns), 'pos and pnl must have the same columns'
         if hasattr(pos.index, 'date'):
             pos = pos.groupby(pos.index.date).mean()
@@ -89,6 +87,8 @@ class Metrics:
         return_pnl = Metrics.compute_return_pnl(pos, pnl)
         return (1 + return_pnl).cumprod()
     
+    ### Metrics ###
+
     @staticmethod
     def compute_drawdown(pnl:pd.DataFrame) -> pd.Series:
         if hasattr(pnl.index, 'date'):
@@ -155,6 +155,19 @@ class Metrics:
             pos = pos.abs().groupby(pos.index.date).mean()
         return (pos > 0).mean()
     
+    @staticmethod
+    def compute_win_rate(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
+        if hasattr(pnl.index, 'date'):
+            pnl = pnl.groupby(pnl.index.date).sum()
+        return (pnl > 0).sum() / ( (pnl > 0).sum() + (pnl < 0).sum() )
+    
+    @staticmethod
+    def compute_long_ratio(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
+        if hasattr(pos.index, 'date'):
+            pos = pos.groupby(pos.index.date).mean()
+            pnl = pnl.groupby(pnl.index.date).sum()
+        return pnl[pos > 0].sum() / pnl.sum()
+    
     ### Backtest ###
     
     @staticmethod
@@ -169,6 +182,8 @@ class Metrics:
             'calamar': Metrics.compute_calamar(pnl),
             'sortino': Metrics.compute_sortino(pnl),
             'ftrading': Metrics.compute_ftrading(pos),
+            'win_rate': Metrics.compute_win_rate(pnl),
+            'long_ratio': Metrics.compute_long_ratio(pnl, pos),
             'r_sharpe': Metrics.compute_sharpe(pnl.fillna(0).rolling(252).mean()),
         })
     
@@ -195,7 +210,7 @@ class Metrics:
 
         match (type(pos), type(pnl), type(pos_change)):
             case (pd.Series, pd.Series, pd.Series):
-                return Metrics._compute_metrics_ds(pos, pnl, pos_change).to_frame('overall').T
+                return Metrics._compute_metrics_ds(pos, pnl, pos_change)
             case (pd.DataFrame, pd.DataFrame, pd.DataFrame):
                 assert pos.columns.equals(pnl.columns) and pos.columns.equals(pos_change.columns), 'pos, pnl and pos_change must have the same columns'
                 return Metrics._compute_metrics_df(pos, pnl, pos_change)
@@ -212,7 +227,7 @@ class Metrics:
             pos_change = pos_change.groupby(pos_change.index.date).sum()
             pnl = pnl.groupby(pnl.index.date).sum()
 
-        print(Metrics._compute_metrics_ds(pos.abs().sum(1), pnl.sum(1), pos_change.sum(1)))
+        print( Metrics._compute_metrics_ds(pos.abs().sum(1), pnl.sum(1), pos_change.sum(1)).to_frame('overall').T )
 
         Utilitaires.plotx( risk * pnl.sum(1).cumsum() / pnl.sum(1).std(), title='pnl total' ).show()
         Utilitaires.plotx( risk * Metrics.compute_drawdown(pnl.sum(1)) / pnl.sum(1).std(), title='drawdown' ).show()
