@@ -46,8 +46,8 @@ class Strategy:
         return Strategy(
             signal = signal if signal is not None else self.signal.copy(),
             returns= returns if returns is not None else self.returns.copy(),
-            vol_target_window = vol_target_window if vol_target_window is not None else self.vol_target_window,
-            vol = vol if vol is not None else self.volatility.copy()
+            vol = vol if vol is not None else self.volatility.copy(),
+            vol_target_window= None 
         )
     
     def __getitem__(self:'Strategy', to_keep_list:Iterable[str]) -> 'Strategy':
