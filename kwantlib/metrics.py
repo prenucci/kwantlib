@@ -175,7 +175,7 @@ class Metrics:
     @staticmethod
     def _compute_metrics_df(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame) -> pd.DataFrame:
         tasks = (
-            ( pos.loc[:, [col]], pnl.loc[:, col].fillna(0), pos_change.loc[:, col] ) 
+            ( pos.loc[:, col], pnl.loc[:, col].fillna(0), pos_change.loc[:, col] ) 
             for col in pos.columns
         )
         with mp.Pool(Metrics.n_jobs) as pool:
@@ -183,7 +183,7 @@ class Metrics:
         
         return pd.concat({
             col:metric_col for col, metric_col in zip(pos.columns, results)
-        }, axis = 0).sort_values(by='eff_sharpe', ascending=False, axis=0)
+        }, axis=1).T.sort_values(by='eff_sharpe', ascending=False)
         
     @staticmethod
     def compute_metrics(
