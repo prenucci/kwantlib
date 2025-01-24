@@ -102,7 +102,7 @@ class Metrics:
         pos_change:pd.DataFrame | pd.Series = None
     ) -> tuple[pd.DataFrame | pd.Series, pd.DataFrame | pd.Series, pd.DataFrame | pd.Series]:
         if pos_abs is not None and hasattr(pos_abs.index, 'date'):
-            pos_abs = pos_abs.groupby(pos_abs.index.date).mean()
+            pos_abs = pos_abs.groupby(pos_abs.index.date).sum()
         if pnl is not None and hasattr(pnl.index, 'date'):
             pnl = pnl.groupby(pnl.index.date).sum()
         if pos_change is not None and hasattr(pos_change.index, 'date'):
@@ -133,7 +133,7 @@ class Metrics:
         pos:pd.DataFrame | pd.Series, pnl:pd.DataFrame | pd.Series,
     ) -> pd.Series | float:
         pos_abs, pnl, _ = Metrics._resample_daily(pos.abs(), pnl, None)
-        return 252 * pnl.mean() / pos_abs.mean()
+        return pnl.mean() / pos_abs.mean()
     
     @staticmethod
     def compute_maxdrawdown(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
