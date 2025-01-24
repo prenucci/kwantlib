@@ -128,8 +128,8 @@ class Operator:
 
         return new_signal
 
-    ############ Markovitz
-
+class Weighting:
+    
     @staticmethod
     def _markovitz_minvol(pnl_train:pd.DataFrame, l2_reg:float) -> pd.Series:
         try:

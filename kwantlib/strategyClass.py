@@ -5,7 +5,7 @@ from typing import Iterable, Callable, Literal, Any
 
 from .utilitaires import Utilitaires
 from .metrics import Metrics
-from .operators import Operator
+from .operators import Operator, Weighting
 
 
 ############ Strategy Class
@@ -94,24 +94,40 @@ class Strategy:
     def ranking(self:'Strategy', *args, **kwargs) -> 'Strategy':
         return self.apply(Operator.ranking, *args, **kwargs)
     
+    ### Weighting
+
+    def weight(self:'Strategy', func:Callable[[pd.DataFrame, Any], pd.DataFrame], *args, **kwargs) -> 'Strategy':
+        pnl = self.pnl.shift(1)
+        w = func(pnl, *args, **kwargs)
+        w = w.reindex(self.signal.index, method='ffill').ffill()
+        return self._reinit(signal = self.signal.multiply(w))
+
     def markovitz(
         self:'Strategy', method:Literal['minvol', 'maxsharpe'] = 'maxsharpe', level:Literal['cross asset', 'per asset'] = 'cross asset'
     ) -> 'Strategy':
-        pnl = self.pnl.shift(1)
-        w = Operator.markovitz(pnl, method=method, level=level)
-        w = w.reindex(self.signal.index, method='ffill').ffill()
-        return self._reinit(signal = self.signal.multiply(w))
+        return self.weight(Weighting.markovitz, method=method, level=level)
     
     def isorisk(self:'Strategy') -> 'Strategy':
-        pnl = self.pnl.shift(1)
-        w = pnl.apply(lambda x: x.dropna().expanding().std())
-        return self._reinit(signal = self.signal.div(w))
+        def _isorisk(pnl:pd.DataFrame) -> pd.DataFrame:
+            return pnl.apply(lambda x: 1 / x.dropna().expanding().std()).fillna(0)
+        return self.weight(_isorisk)
     
+    def sign_weighting(self:'Strategy') -> 'Strategy':
+        def _sign_weighting(pnl:pd.DataFrame) -> pd.DataFrame:
+            return pnl.apply(lambda x: x.dropna().expanding().mean().apply(np.sign))
+        return self.weight(_sign_weighting)
+    
+    ### Cutoffs
+
+    def cutoff(self:'Strategy', func:Callable[[pd.Series, Any], pd.Series], threshold:float = 0.3, *args, **kwargs) -> 'Strategy':
+        pnl = self.pnl.shift(1)
+        metric = pnl.apply(func, *args, **kwargs)
+        return self._reinit(signal = self.signal.where(metric > threshold, 0))
+
     def low_sharpe_cutoff(self:'Strategy', threshold:float = 0.3) -> 'Strategy':
         def _sharpe(pnl:pd.Series) -> pd.Series:
             return 16 * pnl.dropna().expanding().mean() / pnl.dropna().expanding().std()
-        sharpe = self.pnl.shift(1).apply(_sharpe) 
-        return self._reinit(signal = self.signal.where(sharpe < threshold, 0))
+        return self.cutoff(_sharpe, threshold)
     
     ### Backtest
             
