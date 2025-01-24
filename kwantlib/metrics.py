@@ -6,8 +6,6 @@ from .utilitaires import Utilitaires
 
 class Metrics:
 
-    n_jobs = mp.cpu_count() - 2
-
     ### Core functions ###  
 
     @staticmethod 
@@ -26,7 +24,7 @@ class Metrics:
     @staticmethod
     def _compute_pnl_df(position:pd.DataFrame, returns:pd.DataFrame) -> pd.DataFrame:
         tasks = ( ( position.loc[:, [col]], returns.loc[:, col].dropna() ) for col in returns.columns )
-        with mp.Pool(Metrics.n_jobs) as pool:
+        with mp.Pool(Utilitaires.n_jobs) as pool:
             results = pool.starmap(Metrics._compute_pnl_ds, tasks)
         pnl = pd.concat(results, axis = 1)
         assert not pnl.apply(np.isinf).any().any(), 'inf in your pnl'
@@ -58,7 +56,7 @@ class Metrics:
             ( pos_change.loc[:, [col]], bid_ask_spread.loc[:, col].dropna(), fee_per_transaction ) 
             for col in pos_change.columns
         )
-        with mp.Pool(Metrics.n_jobs) as pool:
+        with mp.Pool(Utilitaires.n_jobs) as pool:
             results = pool.starmap(Metrics._compute_cost_ds, tasks)
         return pd.concat(results, axis = 1)
 
@@ -193,7 +191,7 @@ class Metrics:
             ( pos.loc[:, col], pnl.loc[:, col].fillna(0), pos_change.loc[:, col] ) 
             for col in pos.columns
         )
-        with mp.Pool(Metrics.n_jobs) as pool:
+        with mp.Pool(Utilitaires.n_jobs) as pool:
             results = pool.starmap(Metrics._compute_metrics_ds, tasks)
         
         return pd.concat({

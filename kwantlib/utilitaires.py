@@ -1,8 +1,11 @@
 import pandas as pd 
 import plotly.express as px 
+import multiprocessing as mp 
 from typing import Literal
 
 class Utilitaires:
+
+    n_jobs = mp.cpu_count() - 2
 
     @staticmethod
     def shift_with_sample(

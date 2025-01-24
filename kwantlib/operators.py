@@ -4,9 +4,9 @@ import multiprocessing as mp
 from scipy.optimize import minimize
 from typing import Iterable, List, Literal
 
-class Operator:
+from .utilitaires import Utilitaires
 
-    n_jobs = mp.cpu_count() - 2
+class Operator:
 
     @staticmethod
     def proj(signal:pd.DataFrame, threshold:float=0, level:int | List[int] = 0) -> pd.DataFrame: 
@@ -65,7 +65,7 @@ class Operator:
             (signal.loc[:, col].dropna() if skipna else signal.loc[:, col], smooth_params, lookback_params, is_ewm) 
             for col in signal.columns
         )
-        with mp.Pool(Operator.n_jobs) as pool:
+        with mp.Pool(Utilitaires.n_jobs) as pool:
             results = pool.starmap(Operator._cross_moving_average_ds, tasks)
             
         return pd.concat({
@@ -105,7 +105,7 @@ class Operator:
     @staticmethod
     def _ranking_df(signal:pd.DataFrame, k:int) -> pd.DataFrame:
         tasks = ( (signal.loc[i, :].dropna(), k) for i in signal.index )
-        with mp.Pool(Operator.n_jobs) as pool:
+        with mp.Pool(Utilitaires.n_jobs) as pool:
             results = pool.starmap(Operator._ranking_row, tasks)
         return pd.DataFrame([res for res in results], columns = signal.columns)
 
@@ -188,7 +188,7 @@ class Operator:
             (pnl.loc[ pnl.index < training_date, :].fillna(0), l2_reg) for training_date in training_dates
         )
 
-        with mp.Pool(Operator.n_jobs) as pool:
+        with mp.Pool(Utilitaires.n_jobs) as pool:
             results = pool.starmap(markovitz_func, tasks)
         weights = pd.DataFrame(results, index = training_dates)
         
