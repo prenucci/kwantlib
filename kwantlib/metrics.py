@@ -160,9 +160,9 @@ class Metrics:
         _, pnl, _ = Metrics._resample_daily(None, pnl, None)
         return (pnl > 0).sum() / ( (pnl != 0).sum() )
     
-    @staticmethod
-    def compute_long_ratio(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
-        return pnl[pos.shift(1) > 0].sum() / pnl.sum()
+    # @staticmethod
+    # def compute_long_ratio(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
+    #     return pnl[pos.shift(1) > 0].sum() / pnl.sum()
     
     ### Backtest ###
     
@@ -179,7 +179,7 @@ class Metrics:
             'sortino': Metrics.compute_sortino(pnl),
             'ftrading': Metrics.compute_ftrading(pos),
             'win_rate': Metrics.compute_win_rate(pnl),
-            'long_ratio': Metrics.compute_long_ratio(pnl, pos),
+            # 'long_ratio': Metrics.compute_long_ratio(pnl, pos),
             'r_sharpe': Metrics.compute_sharpe(pnl.fillna(0).rolling(252).mean()),
         })
     
