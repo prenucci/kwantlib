@@ -115,8 +115,7 @@ class Strategy:
     
     ### Backtest
             
-    @property
-    def metrics(self:'Strategy') -> pd.Series:
+    def metrics(self:'Strategy') -> pd.DataFrame:
         pos = self.position
         pnl = self.pnl.fillna(0)
         pos_change = pos.diff().abs()
