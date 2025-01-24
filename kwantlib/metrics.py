@@ -102,10 +102,12 @@ class Metrics:
         pos_change:pd.DataFrame | pd.Series = None
     ) -> tuple[pd.DataFrame | pd.Series, pd.DataFrame | pd.Series, pd.DataFrame | pd.Series]:
         if pos_abs is not None and hasattr(pos_abs.index, 'date'):
-            pos_abs = pos_abs.groupby(pos_abs.index.date).sum()
+            assert (pos_abs > 0).all(), 'pos_abs must be positive'
+            pos_abs = pos_abs.groupby(pos_abs.index.date).mean()
         if pnl is not None and hasattr(pnl.index, 'date'):
             pnl = pnl.groupby(pnl.index.date).sum()
         if pos_change is not None and hasattr(pos_change.index, 'date'):
+            assert (pos_change > 0).all(), 'pos_change must be positive'
             pos_change = pos_change.groupby(pos_change.index.date).sum()
         return pos_abs, pnl, pos_change
     
