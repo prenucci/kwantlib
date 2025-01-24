@@ -249,7 +249,3 @@ class Metrics:
         if bid_ask_spread is not None:
             pnl -= Metrics.compute_cost(pos.diff().abs(), bid_ask_spread, fee_per_transaction)
         return Metrics.backtest(pos, pnl, pos.diff().abs(), risk)
-
-    @staticmethod
-    def monkey_patch_quick_backtest():
-        pd.DataFrame.quick_backtest = Metrics.quick_backtest
