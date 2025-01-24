@@ -70,68 +70,13 @@ class Strategy:
         return Metrics.compute_drawdown(self.pnl)
     
     @property
-    def return_pnl(self:'Strategy') -> pd.Series:
+    def ret(self:'Strategy') -> pd.Series:
         return Metrics.compute_ret(self.pnl, self.position)
     
     @property
     def compounded_value(self:'Strategy') -> pd.Series:
         return Metrics.compute_compounded_value(self.position, self.pnl)
         
-    ### Metrics
-    
-    def sharpe(self:'Strategy', training_date:str = None, is_effective:bool = True) -> pd.Series:
-        pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Metrics.compute_sharpe(pnl[pnl!=0] if is_effective else pnl)
-    
-    def turnover(self:'Strategy', training_date:str = None) -> pd.Series:
-        pos = self.position.loc[:, training_date:]
-        return Metrics.compute_turnover(pos)
-    
-    def pnl_per_trade(self:'Strategy', training_date:str = None) -> pd.Series:
-        pos_change = self.position.loc[:, training_date:].diff().abs()
-        pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Metrics.compute_pnl_per_trade(pnl, pos_change)
-        
-    def mean_returns(self:'Strategy', training_date:str = None) -> pd.Series:
-        pnl = self.pnl.loc[:, training_date:].fillna(0)
-        pos = self.position.loc[:, training_date:].fillna(0)
-        return Metrics.compute_mean_returns(pnl, pos)
-    
-    def maxdrawdown(self:'Strategy', training_date:str = None) -> pd.Series:
-        pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Metrics.compute_maxdrawdown(pnl)
-    
-    def calamar(self:'Strategy', training_date:str = None) -> pd.Series:
-        pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Metrics.compute_calamar(pnl)
-    
-    def sortino(self:'Strategy', training_date:str = None) -> pd.Series:
-        pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Metrics.compute_sortino(pnl)
-    
-    def ftrading(self:'Strategy', training_date:str = None) -> pd.Series:
-        pos = self.position.loc[:, training_date:]
-        return Metrics.compute_ftrading(pos)
-    
-    def win_rate(self:'Strategy', training_date:str = None) -> pd.Series:
-        pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Metrics.compute_win_rate(pnl)
-    
-    def long_ratio(self:'Strategy', training_date:str = None) -> pd.Series:
-        pos = self.position.loc[:, training_date:]
-        pnl = self.pnl.loc[:, training_date:].fillna(0)
-        return Metrics.compute_long_ratio(pos, pnl)
-    
-    def r_sharpe(self:'Strategy', training_date:str = None) -> pd.Series:
-        pnl = self.pnl.fillna(0).rolling('252D').mean().loc[:, training_date:]
-        return Metrics.compute_sharpe(pnl)
-    
-    def metrics(self:'Strategy', training_date:str = None) -> pd.Series:
-        pos = self.position.loc[:, training_date:]
-        pnl = self.pnl.loc[:, training_date:].fillna(0)
-        pos_change = pos.diff().abs()
-        return Metrics.compute_metrics(pos, pnl, pos_change)
-
     ### Operators
 
     def apply(self:'Strategy', func:Callable[[pd.DataFrame, Any], pd.DataFrame], *args, **kwargs) -> 'Strategy':
@@ -169,15 +114,22 @@ class Strategy:
         return self._reinit(signal = self.signal.where(sharpe < threshold, 0))
     
     ### Backtest
+            
+    @property
+    def metrics(self:'Strategy') -> pd.Series:
+        pos = self.position
+        pnl = self.pnl.fillna(0)
+        pos_change = pos.diff().abs()
+        return Metrics.compute_metrics(pos, pnl, pos_change)
 
-    def backtest(self:'Strategy', training_date:str=None) -> pd.DataFrame:
+    def backtest(self:'Strategy') -> pd.DataFrame:
         if self.returns.columns.nlevels > 1:
             self = self.proj()
 
         return Metrics.backtest(
-            pos = self.position.loc[training_date:, :], 
-            pnl = self.pnl.loc[training_date:, :].fillna(0), 
-            pos_change = self.position.loc[training_date:, :].diff().abs(),
+            pos = self.position,
+            pnl = self.pnl.fillna(0), 
+            pos_change = self.position.diff().abs(),
             risk = Strategy.risk
         )
 

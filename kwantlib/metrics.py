@@ -18,7 +18,7 @@ class Metrics:
         return pos.ffill()
     
     @staticmethod
-    def _compute_pnl_ds(position:pd.DataFrame, returns:pd.Series) -> pd.Series:
+    def _compute_pnl_ds(position:pd.DataFrame | pd.Series, returns:pd.Series) -> pd.DataFrame | pd.Series:
         assert returns.notna().all(), 'returns must not contain nan'
         pos = position.reindex(returns.index, method='ffill')
         return pos.shift(1).multiply(returns, axis=0)
@@ -33,19 +33,19 @@ class Metrics:
         return pnl
     
     @staticmethod
-    def compute_pnl(position:pd.DataFrame, returns:pd.DataFrame | pd.Series) -> pd.DataFrame:
-        match type(returns):
-            case pd.Series:
+    def compute_pnl(position:pd.DataFrame | pd.Series, returns:pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
+        match (type(position), type(returns)):
+            case (pd.Series, pd.Series):
                 return Metrics._compute_pnl_ds(position, returns.dropna())
-            case pd.DataFrame:
+            case (pd.DataFrame, pd.DataFrame | pd.Series):
                 return Metrics._compute_pnl_df(position, returns)
             case _:
                 raise ValueError('returns must be a pd.DataFrame or pd.Series')
             
     @staticmethod
     def _compute_cost_ds(
-        pos_change:pd.DataFrame, bid_ask_spread:pd.Series, fee_per_transaction:float
-    ) -> pd.Series:
+        pos_change:pd.DataFrame | pd.Series, bid_ask_spread:pd.Series, fee_per_transaction:float
+    ) -> pd.DataFrame | pd.Series:
         assert bid_ask_spread.notna().all(), 'returns must not contain nan'
         pos_change = pos_change.reindex(bid_ask_spread.index, method='ffill').ffill()
         return (bid_ask_spread / 2 + fee_per_transaction) * pos_change 
@@ -64,109 +64,104 @@ class Metrics:
 
     @staticmethod
     def compute_cost(
-        pos_change:pd.DataFrame, bid_ask_spread:pd.DataFrame | pd.Series, fee_per_transaction:float
-    ) -> pd.DataFrame:
-        match type(bid_ask_spread):
-            case pd.Series:
+        pos_change:pd.DataFrame | pd.Series, bid_ask_spread:pd.DataFrame | pd.Series, fee_per_transaction:float
+    ) -> pd.DataFrame | pd.Series:
+        match (type(pos_change), type(bid_ask_spread)):
+            case (pd.Series, pd.Series):
                 return Metrics._compute_cost_ds(pos_change, bid_ask_spread, fee_per_transaction)
-            case pd.DataFrame:
+            case (pd.DataFrame, pd.DataFrame | pd.Series):
                 return Metrics._compute_cost_df(pos_change, bid_ask_spread, fee_per_transaction)
             case _:
-                raise ValueError('bid_ask_spread must be a pd.Series or pd.DataFrame')
+                raise ValueError(
+                    f'(pd.Series, pd.Series) or (pd.DataFrame, pd.DataFrame | pd.Series) are the only valid types. Not {type(pos_change), type(bid_ask_spread)}'
+                )
                 
     @staticmethod
     def compute_ret(pos:pd.DataFrame, pnl:pd.DataFrame) -> pd.DataFrame:
         assert pos.columns.equals(pnl.columns), 'pos and pnl must have the same columns'
-        pos_abs = pos.abs()
-        if hasattr(pos_abs.index, 'date'):
-            pos_abs = pos_abs.groupby(pos_abs.index.date).mean()
-            pnl = pnl.groupby(pnl.index.date).sum()
-        return pnl.div(pos_abs.shift(1), axis=0)
+        return pnl.div(
+            pos.abs().shift(1), axis=0
+        )
     
     @staticmethod
     def compute_compounded_value(pos:pd.DataFrame, pnl:pd.DataFrame) -> pd.DataFrame:
-        return_pnl = Metrics.compute_return_pnl(pos, pnl)
+        return_pnl = Metrics.compute_ret(pos, pnl)
         return (1 + return_pnl).cumprod()
     
+    @staticmethod
+    def compute_drawdown(pnl:pd.DataFrame) -> pd.Series:
+        return - ( pnl.cumsum().cummax() - pnl.cumsum() ) 
+    
+
     ### Metrics ###
 
     @staticmethod
-    def compute_drawdown(pnl:pd.DataFrame) -> pd.Series:
-        if hasattr(pnl.index, 'date'):
+    def _resample_daily(
+        pos_abs: pd.DataFrame | pd.Series = None, 
+        pnl: pd.DataFrame | pd.Series = None, 
+        pos_change:pd.DataFrame | pd.Series = None
+    ) -> tuple[pd.DataFrame | pd.Series, pd.DataFrame | pd.Series, pd.DataFrame | pd.Series]:
+        if hasattr(pos_abs.index, 'date'):
+            assert hasattr(pnl.index, 'date') and hasattr(pos_change.index, 'date'), 'pos, pnl and pos_change must all be intraday or daily'
+            pos_abs = pos_abs.groupby(pos_abs.index.date).mean()
             pnl = pnl.groupby(pnl.index.date).sum()
-        return - ( pnl.cumsum().cummax() - pnl.cumsum() ) 
+            pos_change = pos_change.groupby(pos_change.index.date).sum()
+        return pos_abs, pnl, pos_change
     
     @staticmethod
     def compute_sharpe(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
-        if hasattr(pnl.index, 'date'):
-            pnl = pnl.groupby(pnl.index.date).sum()
+        _, pnl, _ = Metrics._resample_daily(None, pnl, None)
         return 16 * pnl.mean() / pnl.std()
     
     @staticmethod
     def compute_turnover(
-        pos:pd.DataFrame | pd.Series, pos_change:pd.DataFrame | pd.Series = None
+        pos:pd.DataFrame | pd.Series, pos_change:pd.DataFrame | pd.Series
     ) -> pd.Series | float:
-        pos_abs = pos.abs()
-        if pos_change is None:
-            pos_change = pos.diff().abs()
-        if hasattr(pos_abs.index, 'date'):
-            pos_abs = pos_abs.groupby(pos_abs.index.date).mean()
-            pos_change = pos_change.groupby(pos_change.index.date).sum()
+        pos_abs, _, pos_change = Metrics._resample_daily(pos.abs(), None, pos_change.abs())
         return 100 * pos_change.mean() / pos_abs.mean() 
     
     @staticmethod
     def compute_pnl_per_trade(
         pnl:pd.DataFrame | pd.Series, pos_change:pd.DataFrame | pd.Series
     ) -> pd.Series | float:
-        if hasattr(pos_change.index, 'date'):
-            pos_change = pos_change.groupby(pos_change.index.date).sum()
-            pnl = pnl.groupby(pnl.index.date).sum()
+        _, pnl, pos_change = Metrics._resample_daily(None, pnl, pos_change.abs())
         return 1e4 * pnl.mean() / pos_change.mean()
     
     @staticmethod
     def compute_mean_returns(
         pos:pd.DataFrame | pd.Series, pnl:pd.DataFrame | pd.Series,
     ) -> pd.Series | float:
-        pos_abs = pos.abs()
-        if hasattr(pos_abs.index, 'date'):
-            pos_abs = pos_abs.groupby(pos.index.date).mean()
-            pnl = pnl.groupby(pnl.index.date).sum()
-        return 100 * 252 * pnl.mean() / pos_abs.mean()
+        pos_abs, pnl, _ = Metrics._resample_daily(pos.abs(), pnl, None)
+        return 252 * pnl.mean() / pos_abs.mean()
     
     @staticmethod
     def compute_maxdrawdown(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
-        if hasattr(pnl.index, 'date'):
-            pnl = pnl.groupby(pnl.index.date).sum()
+        _, pnl, _ = Metrics._resample_daily(None, pnl, None)
         return ( pnl.cumsum().cummax() - pnl.cumsum() ).max() / pnl.std()
     
     @staticmethod
     def compute_calamar(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
-        if hasattr(pnl.index, 'date'):
-            pnl = pnl.groupby(pnl.index.date).sum()
+        _, pnl, _ = Metrics._resample_daily(None, pnl, None)
         return 16 * Metrics.compute_sharpe(pnl) / Metrics.compute_maxdrawdown(pnl)
     
     @staticmethod
     def compute_sortino(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
-        if hasattr(pnl.index, 'date'):
-            pnl = pnl.groupby(pnl.index.date).sum()
+        _, pnl, _ = Metrics._resample_daily(None, pnl, None)
         return 16 * pnl.mean() / pnl[pnl < 0].std()
     
     @staticmethod
     def compute_ftrading(pos:pd.DataFrame | pd.Series) -> pd.Series | float:
-        pos_abs = pos.abs()
-        if hasattr(pos_abs.index, 'date'):
-            pos_abs = pos_abs.groupby(pos_abs.index.date).mean()
-        return (pos_abs > 0).mean()
+        pos_abs, _, _ = Metrics._resample_daily(pos.abs(), None, None)
+        return (pos_abs != 0).mean()
     
     @staticmethod
     def compute_win_rate(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
-        if hasattr(pnl.index, 'date'):
-            pnl = pnl.groupby(pnl.index.date).sum()
+        _, pnl, _ = Metrics._resample_daily(None, pnl, None)
         return (pnl > 0).sum() / ( (pnl != 0).sum() )
     
     @staticmethod
     def compute_long_ratio(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
-        return pnl[pos > 0].sum() / pnl.sum()
+        return pnl[pos.shift(1) > 0].sum() / pnl.sum()
     
     ### Backtest ###
     
@@ -207,6 +202,8 @@ class Metrics:
         
         if pos_change is None:
             pos_change = pos.diff().abs() 
+        
+        pos, pnl, pos_change = Metrics._resample_daily(pos, pnl, pos_change)
 
         match (type(pos), type(pnl), type(pos_change)):
             case (pd.Series, pd.Series, pd.Series):
@@ -222,18 +219,32 @@ class Metrics:
         if pos_change is None:
             pos_change = pos.diff().abs()
 
-        pos_abs = pos.abs()
-        if hasattr(pos_abs.index, 'date'):
-            pos_abs = pos_abs.groupby(pos_abs.index.date).mean()
-            pos_change = pos_change.groupby(pos_change.index.date).sum()
-            pnl = pnl.groupby(pnl.index.date).sum()
+        pos_abs, pnl, pos_change = Metrics._resample_daily(pos.abs(), pnl, pos_change.abs())
 
         print( Metrics._compute_metrics_ds(pos_abs.sum(1), pnl.sum(1), pos_change.sum(1)).to_frame('overall').T )
 
-        Utilitaires.plotx( risk * pnl.sum(1).cumsum() / pnl.sum(1).std(), title='pnl total' ).show()
+        Utilitaires.plotx( risk * pnl.sum(1).cumsum()                  / pnl.sum(1).std(), title='pnl total' ).show()
         Utilitaires.plotx( risk * Metrics.compute_drawdown(pnl.sum(1)) / pnl.sum(1).std(), title='drawdown' ).show()
 
         if len(pnl.columns) < 30:
             Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
 
         return Metrics._compute_metrics_df(pos, pnl, pos_change)
+    
+    @staticmethod
+    def quick_backtest(
+        returns:pd.DataFrame | pd.Series, signal:pd.DataFrame, 
+        vol:pd.DataFrame = None, bid_ask_spread:pd.DataFrame = None, 
+        risk:float = 1, fee_per_transaction:float = 1e-4
+    ) -> pd.DataFrame:
+        if isinstance(returns, pd.Series):
+            returns = returns.to_frame()
+        pos = Metrics.compute_position(signal, vol) if vol is not None else Utilitaires.custom_reindex_like(returns)
+        pnl = Metrics.compute_pnl(pos, returns)
+        if bid_ask_spread is not None:
+            pnl -= Metrics.compute_cost(pos.diff().abs(), bid_ask_spread, fee_per_transaction)
+        return Metrics.backtest(pos, pnl, pos.diff().abs(), risk)
+
+    @staticmethod
+    def monkey_patch_quick_backtest():
+        pd.DataFrame.quick_backtest = Metrics.quick_backtest
