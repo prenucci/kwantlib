@@ -101,10 +101,11 @@ class Metrics:
         pnl: pd.DataFrame | pd.Series = None, 
         pos_change:pd.DataFrame | pd.Series = None
     ) -> tuple[pd.DataFrame | pd.Series, pd.DataFrame | pd.Series, pd.DataFrame | pd.Series]:
-        if hasattr(pos_abs.index, 'date'):
-            assert hasattr(pnl.index, 'date') and hasattr(pos_change.index, 'date'), 'pos, pnl and pos_change must all be intraday or daily'
+        if pos_abs is not None and hasattr(pos_abs.index, 'date'):
             pos_abs = pos_abs.groupby(pos_abs.index.date).mean()
+        if pnl is not None and hasattr(pnl.index, 'date'):
             pnl = pnl.groupby(pnl.index.date).sum()
+        if pos_change is not None and hasattr(pos_change.index, 'date'):
             pos_change = pos_change.groupby(pos_change.index.date).sum()
         return pos_abs, pnl, pos_change
     
