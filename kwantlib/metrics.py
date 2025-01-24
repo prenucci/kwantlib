@@ -160,9 +160,11 @@ class Metrics:
         _, pnl, _ = Metrics._resample_daily(None, pnl, None)
         return (pnl > 0).sum() / ( (pnl != 0).sum() )
     
-    # @staticmethod
-    # def compute_long_ratio(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
-    #     return pnl[pos.shift(1) > 0].sum() / pnl.sum()
+    @staticmethod
+    def compute_long_ratio(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
+        pnl = pnl.fillna(0)
+        pos_shifted = pos.shift(1).reindex(pnl.index, method='ffill').ffill()
+        return pnl.where(pos_shifted > 0, 0).sum() / pnl.sum()
     
     ### Backtest ###
     
