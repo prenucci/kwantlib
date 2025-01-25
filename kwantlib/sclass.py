@@ -15,27 +15,29 @@ from .weightings import Weighting
 class Strategy:
 
     risk = 1
+    vol_target_window = '15D'
 
     def __init__(
-            self:'Strategy', 
-            signal:pd.DataFrame, 
-            returns:pd.DataFrame, 
-            vol:pd.DataFrame = None,
+            self:'Strategy', signal:pd.DataFrame, returns:pd.DataFrame, vol:pd.DataFrame = None
         ) -> None:
 
-        instruments = returns.columns.intersection(
-            signal.columns.get_level_values(0).unique()      
-        )
-
-        self.signal: pd.DataFrame = signal.loc[:, instruments].replace([np.inf, -np.inf], np.nan).copy()
-        self.returns: pd.DataFrame = returns.loc[:, instruments].copy()
 
         if vol is None:
-            vol = self.returns.shift(1).apply(lambda x: x.dropna().rolling('15D').std())
-
-        self.volatility: pd.DataFrame = Utilitaires.custom_reindex_like(
-            vol.loc[:, instruments], self.returns
+            vol = self.returns.shift(1).apply(
+                lambda x: x.dropna().rolling(Strategy.vol_target_window).std()
+            )
+        
+        instruments = (
+            signal.columns.get_level_values(0).unique()
+            .intersection(returns.columns)
+            .intersection(vol.columns)
         )
+
+        self.signal: pd.DataFrame = signal.replace([np.inf, -np.inf], np.nan).loc[:, instruments]
+        self.returns: pd.DataFrame = returns.loc[:, instruments]
+        self.volatility: pd.DataFrame = vol.loc[:, instruments]
+
+        self.volatility = Utilitaires.custom_reindex_like(self.volatility, self.returns)
 
     def reinit(
             self:'Strategy', signal:pd.DataFrame = None, returns:pd.DataFrame = None, vol:pd.DataFrame = None

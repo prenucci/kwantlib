@@ -118,7 +118,10 @@ class Metrics:
                 raise ValueError('pos, pnl and pos_change must be of the same type')
         
     @staticmethod
-    def backtest(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None, risk:float = 1) -> pd.DataFrame:   
+    def backtest(
+        pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None, risk:float = 1
+    ) -> pd.DataFrame:   
+        
         if pos_change is None:
             pos_change = pos.diff().abs()
 
