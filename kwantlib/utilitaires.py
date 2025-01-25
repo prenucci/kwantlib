@@ -80,26 +80,16 @@ class Utilitaires:
     
     @staticmethod
     def _custom_reindex_like_ds(ds:pd.Series | pd.DataFrame, like:pd.Series) -> pd.Series | pd.DataFrame:
-        ds_reindexed = ds.reindex(like.dropna().index, method='ffill').ffill().fillna(0)
-        assert (
-            (ds_reindexed.isna() & like.isna()) | (ds_reindexed.notna() & like.notna())
-        ).all(), 'bad reindexing'
-        return ds_reindexed
+        return ds.reindex(like.dropna().index, method='ffill').ffill().fillna(0)
     
     @staticmethod
     def _custom_reindex_like_df(df:pd.DataFrame, like:pd.DataFrame) -> pd.DataFrame:
         assert df.columns.isin(like.columns).all(), 'all columns of df should be in like'
 
-        df_reindexed = pd.concat({
+        return pd.concat({
             col: Utilitaires._custom_reindex_like_ds(df.loc[:, col], like.loc[:, col].dropna()) 
             for col in df.columns 
         }, axis=1)
-
-        assert (
-            (df_reindexed.isna() & like.isna()) | (df_reindexed.notna() & like.notna())
-        ).all(), 'bad reindexing'
-
-        return df_reindexed
     
     @staticmethod
     def custom_reindex_like(df:pd.DataFrame | pd.Series, like:pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
