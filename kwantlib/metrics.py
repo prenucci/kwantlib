@@ -138,13 +138,12 @@ class Metrics:
     
     @staticmethod
     def quick_backtest(
-        returns:pd.DataFrame | pd.Series, signal:pd.DataFrame, 
+        returns:pd.DataFrame, signal:pd.DataFrame, 
         vol:pd.DataFrame = None, bid_ask_spread:pd.DataFrame = None, 
         risk:float = 1, fee_per_transaction:float = 1e-4
     ) -> pd.DataFrame:
-        if isinstance(returns, pd.Series):
-            returns = returns.to_frame()
-        pos = Core.compute_position(signal, vol) if vol is not None else Utilitaires.custom_reindex_like(returns)
+        
+        pos = Core.compute_position(signal, vol) if vol is not None else signal
         pnl = Core.compute_pnl(pos, returns)
         if bid_ask_spread is not None:
             pnl -= Core.compute_cost(pos.diff().abs(), bid_ask_spread, fee_per_transaction)
