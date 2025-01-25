@@ -27,15 +27,15 @@ class Strategy:
                 lambda x: x.dropna().rolling(Strategy.vol_target_window).std()
             )
         
-        instruments = (
+        self.instruments = (
             signal.columns.get_level_values(0).unique()
             .intersection(returns.columns)
             .intersection(vol.columns)
         )
 
-        self.signal: pd.DataFrame = signal.replace([np.inf, -np.inf], np.nan).loc[:, instruments]
-        self.returns: pd.DataFrame = returns.loc[:, instruments]
-        self.volatility: pd.DataFrame = vol.loc[:, instruments]
+        self.signal: pd.DataFrame = signal.replace([np.inf, -np.inf], np.nan).loc[:, self.instruments]
+        self.returns: pd.DataFrame = returns.loc[:, self.instruments]
+        self.volatility: pd.DataFrame = vol.loc[:, self.instruments]
 
         self.volatility = Utilitaires.custom_reindex_like(self.volatility, self.returns)
 
@@ -185,7 +185,7 @@ class Strategy:
         return Metrics.mean_returns(self.pos_abs, self.pnl_daily)
     
     def maxdrawdown(self:'Strategy') -> pd.Series:
-        return Metrics.maxdrawdown(self.pnl_daily) 
+        return Metrics.maxdrawdown(self.pnl_daily)
     
     def sortino(self:'Strategy') -> pd.Series:
         return Metrics.sortino(self.pnl_daily)
@@ -215,7 +215,7 @@ class StrategyCost(Strategy):
         ):
         assert bid_ask_spread.columns.equals(returns.columns), 'bid_ask_spread and returns must have the same columns'
         super().__init__(signal, returns, vol)
-        self.bid_ask_spread = bid_ask_spread
+        self.bid_ask_spread = bid_ask_spread.loc[:, self.instruments]
 
     def reinit(
             self:'StrategyCost', signal:pd.DataFrame = None, returns:pd.DataFrame = None, 
