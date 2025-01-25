@@ -216,6 +216,7 @@ class StrategyCost(Strategy):
         assert bid_ask_spread.columns.equals(returns.columns), 'bid_ask_spread and returns must have the same columns'
         super().__init__(signal, returns, vol)
         self.bid_ask_spread = bid_ask_spread.loc[:, self.instruments]
+        self.bid_ask_spread = Utilitaires.custom_reindex_like(self.bid_ask_spread, self.returns)
 
     def reinit(
             self:'StrategyCost', signal:pd.DataFrame = None, returns:pd.DataFrame = None, 
