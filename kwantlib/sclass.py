@@ -6,7 +6,8 @@ from typing import Iterable, Callable, Literal, Any
 from .utilitaires import Utilitaires
 from .core import Core
 from .metrics import Metrics
-from .operators import Operator, Weighting
+from .operators import Operator
+from .weightings import Weighting
 
 
 ############ Strategy Class
@@ -19,8 +20,7 @@ class Strategy:
             self:'Strategy', 
             signal:pd.DataFrame, 
             returns:pd.DataFrame, 
-            vol_target_window:int|str=15, 
-            vol:pd.DataFrame = None
+            vol:pd.DataFrame = None,
         ) -> None:
 
         instruments = returns.columns.intersection(
@@ -31,13 +31,11 @@ class Strategy:
         self.returns: pd.DataFrame = returns.loc[:, instruments].copy()
 
         if vol is None:
-            vol = (
-                self.returns.apply(lambda x: x.dropna().rolling(vol_target_window).std())
-                if vol_target_window else
-                pd.DataFrame(data=1, index=self.returns.index, columns=self.returns.columns)
-            )
+            vol = self.returns.shift(1).apply(lambda x: x.dropna().rolling('15D').std())
 
-        self.volatility = Utilitaires.custom_reindex_like(vol, self.returns)
+        self.volatility: pd.DataFrame = Utilitaires.custom_reindex_like(
+            vol.loc[:, instruments], self.returns
+        )
 
     def reinit(
             self:'Strategy', signal:pd.DataFrame = None, returns:pd.DataFrame = None, vol:pd.DataFrame = None
@@ -96,7 +94,7 @@ class Strategy:
     
     ### Weighting
 
-    def weight(self:'Strategy', func:Callable[[pd.DataFrame, Any], pd.DataFrame], *args, **kwargs) -> 'Strategy':
+    def weighting(self:'Strategy', func:Callable[[pd.DataFrame, Any], pd.DataFrame], *args, **kwargs) -> 'Strategy':
         pnl = self.pnl_daily.shift(1)
         w = func(pnl, *args, **kwargs)
         w = w.reindex(self.signal.index, method='ffill').ffill()
@@ -107,17 +105,17 @@ class Strategy:
         method:Literal['minvol', 'maxsharpe'] = 'maxsharpe', 
         level:Literal['cross asset', 'per asset'] = 'cross asset'
     ) -> 'Strategy':
-        return self.weight(Weighting.markovitz, method=method, level=level)
+        return self.weighting(Weighting.markovitz, method=method, level=level)
     
     def isorisk(self:'Strategy') -> 'Strategy':
         def _isorisk(pnl:pd.DataFrame) -> pd.DataFrame:
             return pnl.apply(lambda x: 1 / x.dropna().expanding().std()).fillna(0)
-        return self.weight(_isorisk)
+        return self.weighting(_isorisk)
     
     def sign_weighting(self:'Strategy') -> 'Strategy':
         def _sign_weighting(pnl:pd.DataFrame) -> pd.DataFrame:
             return pnl.apply(lambda x: x.dropna().expanding().mean().apply(np.sign))
-        return self.weight(_sign_weighting)
+        return self.weighting(_sign_weighting)
     
     ### Cutoffs
 
@@ -207,31 +205,31 @@ class StrategyCost(Strategy):
     fee_per_transaction = 1e-4
     
     def __init__(
-            self:'StrategyCost', signal:pd.DataFrame, returns:pd.DataFrame, 
-            bid_ask_spread:pd.DataFrame, vol_target_window:int|str=15, 
+            self:'StrategyCost', 
+            signal:pd.DataFrame, 
+            returns:pd.DataFrame, 
+            bid_ask_spread:pd.DataFrame,
             vol:pd.DataFrame = None
         ):
         assert bid_ask_spread.columns.equals(returns.columns), 'bid_ask_spread and returns must have the same columns'
-        super().__init__(signal, returns, vol_target_window, vol)
+        super().__init__(signal, returns, vol)
         self.bid_ask_spread = bid_ask_spread
 
     def reinit(
             self:'StrategyCost', signal:pd.DataFrame = None, returns:pd.DataFrame = None, 
-            bid_ask_spread:pd.DataFrame = None, vol_target_window:int|str = None, 
-            vol:pd.DataFrame = None
+            bid_ask_spread:pd.DataFrame = None, vol:pd.DataFrame = None
         ) -> 'StrategyCost':
         return StrategyCost(
             signal = signal if signal is not None else self.signal.copy(),
             returns= returns if returns is not None else self.returns.copy(),
             bid_ask_spread = bid_ask_spread if bid_ask_spread is not None else self.bid_ask_spread.copy(),
             vol = vol if vol is not None else self.volatility.copy(),
-            vol_target_window = None,
         )
 
     @property
     def cost(self:'StrategyCost') -> pd.DataFrame:
         return Core.compute_cost(
-            self.position_change, 
+            self.pos_change, 
             self.bid_ask_spread, 
             StrategyCost.fee_per_transaction
         )
