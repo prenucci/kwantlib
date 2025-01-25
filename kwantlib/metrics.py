@@ -5,9 +5,7 @@ from .utilitaires import Utilitaires
 from .core import Core
 
 class Metrics:
-    
-    ### Metrics ###
-    
+        
     @staticmethod
     def sharpe(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
         return 16 * pnl.mean() / pnl.std()

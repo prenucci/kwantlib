@@ -29,7 +29,7 @@ class Utilitaires:
     def flatten_columns(df:pd.DataFrame) -> pd.DataFrame: 
         df_ = df.copy() 
         if isinstance(df_, pd.DataFrame) and isinstance(df_.columns, pd.MultiIndex):
-            df_.columns = df_.columns.map(lambda x: (str(u) for u in x)).map(lambda x: ''.join(x))
+            df_.columns = df_.columns.map(lambda x: ''.join(str(u) for u in x))
         return df_
 
     @staticmethod

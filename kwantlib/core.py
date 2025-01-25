@@ -5,14 +5,13 @@ import multiprocessing as mp
 from .utilitaires import Utilitaires
 
 class Core:
-        ### Core functions ###  
 
     @staticmethod 
     def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame) -> pd.DataFrame:
         signal = Utilitaires.custom_reindex_like(signal, volatility)
         pos = signal.div(volatility, axis = 0, level = 0) 
         pos = pos.where(Utilitaires.zscore(pos).abs() < 5, np.nan)
-        return pos.ffill()
+        return pos.ffill().fillna(0)
     
     @staticmethod
     def _compute_pnl_ds(position:pd.DataFrame | pd.Series, returns:pd.Series) -> pd.DataFrame | pd.Series:

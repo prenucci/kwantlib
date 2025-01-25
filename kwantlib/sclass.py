@@ -55,7 +55,7 @@ class Strategy:
             returns= self.returns.loc[:, [x for x in self.returns.columns if x in to_keep_list]]
             )
     
-    #### Properties
+    #### Core properties
         
     @property
     def position(self: 'Strategy') -> pd.DataFrame:
@@ -71,11 +71,11 @@ class Strategy:
         
     @property
     def ret(self:'Strategy') -> pd.Series:
-        return Core.compute_ret(self.pnl_daily, self.position_daily)    
+        return Core.compute_ret(self.position, self.pnl)    
         
     @property
     def compounded_value(self:'Strategy') -> pd.Series:
-        return Core.compute_compounded_value(self.position_daily, self.pnl_daily)
+        return Core.compute_compounded_value(self.position, self.pnl)
         
     ### Operators
 
@@ -135,7 +135,7 @@ class Strategy:
 
     @property
     def pos_abs(self:'Strategy') -> pd.DataFrame:
-        pos_abs = self.position.abs()
+        pos_abs = self.position.abs().fillna(0)
         if hasattr(pos_abs.index, 'date'):
             pos_abs = pos_abs.groupby(pos_abs.index.date).mean()
         return pos_abs
@@ -148,17 +148,14 @@ class Strategy:
         return pnl
     
     @property
-    def position_change(self:'Strategy') -> pd.DataFrame:
-        pos_change = self.position.diff().abs()
+    def pos_change(self:'Strategy') -> pd.DataFrame:
+        pos_change = self.position.diff().abs().fillna(0)
         if hasattr(pos_change.index, 'date'):
             return pos_change.groupby(pos_change.index.date).sum()
         return pos_change
-            
+    
     def metrics(self:'Strategy') -> pd.DataFrame:
-        pos = self.pos_abs
-        pnl = self.pnl_daily
-        pos_change = self.position_change
-        return Metrics.metrics(pos, pnl, pos_change)
+        return Metrics.metrics(self.pos_abs, self.pnl_daily, self.pos_change)
 
     def backtest(self:'Strategy') -> pd.DataFrame:
         if self.returns.columns.nlevels > 1:
@@ -167,10 +164,44 @@ class Strategy:
         return Metrics.backtest(
             pos = self.pos_abs,
             pnl = self.pnl_daily, 
-            pos_change = self.position_change,
+            pos_change = self.pos_change,
             risk = Strategy.risk
         )
     
+    def sharpe(self:'Strategy') -> pd.Series:
+        return Metrics.sharpe(self.pnl_daily)
+    
+    def eff_sharpe(self:'Strategy') -> pd.Series:
+        pnl = self.pnl_daily
+        return Metrics.sharpe(pnl[pnl != 0])
+    
+    def turnover(self:'Strategy') -> pd.Series:
+        return Metrics.turnover(self.pos_abs, self.pos_change)
+    
+    def pnl_per_trade(self:'Strategy') -> pd.Series:
+        return Metrics.pnl_per_trade(self.pnl_daily, self.pos_change)
+    
+    def mean_returns(self:'Strategy') -> pd.Series:
+        return Metrics.mean_returns(self.pos_abs, self.pnl_daily)
+    
+    def maxdrawdown(self:'Strategy') -> pd.Series:
+        return Metrics.maxdrawdown(self.pnl_daily) 
+    
+    def sortino(self:'Strategy') -> pd.Series:
+        return Metrics.sortino(self.pnl_daily)
+    
+    def ftrading(self:'Strategy') -> pd.Series:
+        return Metrics.ftrading(self.pos_abs)
+    
+    def calamar(self:'Strategy') -> pd.Series:
+        return Metrics.calamar(self.pnl_daily)
+    
+    def win_rate(self:'Strategy') -> pd.Series:
+        return Metrics.win_rate(self.pnl_daily)
+    
+    def long_ratio(self:'Strategy') -> pd.Series:
+        return Metrics.long_ratio(self.pnl_daily, self.pos_abs)
+                
 class StrategyCost(Strategy):
 
     fee_per_transaction = 1e-4
