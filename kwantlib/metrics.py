@@ -1,5 +1,7 @@
 import pandas as pd 
 import multiprocessing as mp 
+import plotly.express as px
+import numpy as np
 
 from .utilitaires import Utilitaires
 from .core import Core
@@ -139,6 +141,10 @@ class Metrics:
 
         if len(pnl.columns) < 30:
             Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
+        if len(pnl.columns) < 100:
+            corr = pnl.corr()
+            corr = corr.where(corr != 1)
+            px.imshow(corr.where(corr != 1, np.nan)).show()
 
         return Metrics.metrics(pos_abs, pnl, pos_change)
     
