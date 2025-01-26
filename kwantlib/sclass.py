@@ -76,6 +76,14 @@ class Strategy:
     @property
     def compounded_value(self:'Strategy') -> pd.Series:
         return Core.compute_compounded_value(self.position, self.pnl)
+    
+    @property
+    def pnl_long(self:'Strategy') -> pd.Series:
+        return self.pnl[self.pos.shift(1) > 0].sum(1)
+    
+    @property
+    def pnl_short(self:'Strategy') -> pd.Series:
+        return self.pnl[self.pos.shift(1) < 0].sum(1)
         
     ### Operators
 
