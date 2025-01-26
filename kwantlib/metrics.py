@@ -81,7 +81,7 @@ class Metrics:
             'sortino': Metrics.sortino(pnl),
             'ftrading': Metrics.ftrading(pos),
             'win_rate': Metrics.win_rate(pnl),
-            # 'long_ratio': Metrics.long_ratio(pnl, pos),
+            'long_ratio': Metrics.long_ratio(pnl, pos),
             'r_sharpe': Metrics.sharpe(pnl.fillna(0).rolling(252).mean()),
         })
     
@@ -119,8 +119,11 @@ class Metrics:
         
     @staticmethod
     def backtest(
-        pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame = None, risk:float = 1
+        pnl:pd.DataFrame, pos:pd.DataFrame = None, pos_change:pd.DataFrame = None, risk:float = 1
     ) -> pd.DataFrame:   
+        
+        if pos is None:
+            pos = pd.DataFrame(1, index=pnl.index, columns=pnl.columns)
         
         if pos_change is None:
             pos_change = pos.diff().abs()
@@ -151,4 +154,4 @@ class Metrics:
         pnl = Core.compute_pnl(pos, returns)
         if bid_ask_spread is not None:
             pnl -= Core.compute_cost(pos.diff().abs(), bid_ask_spread, fee_per_transaction)
-        return Metrics.backtest(pos, pnl, pos.diff().abs(), risk)
+        return Metrics.backtest(pnl, pos, pos.diff().abs(), risk)
