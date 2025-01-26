@@ -81,7 +81,6 @@ class Metrics:
             'sortino': Metrics.sortino(pnl),
             'ftrading': Metrics.ftrading(pos),
             'win_rate': Metrics.win_rate(pnl),
-            'long_ratio': Metrics.long_ratio(pnl, pos),
             'r_sharpe': Metrics.sharpe(pnl.fillna(0).rolling(252).mean()),
         })
     
