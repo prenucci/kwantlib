@@ -127,6 +127,9 @@ class Metrics:
 
         pos_abs, pnl, pos_change = Metrics._resample_daily(pos.abs(), pnl, pos_change)
 
+        instruments = pnl.columns.intersection(pos_abs.columns).intersection(pos_change.columns)
+        pos_abs, pnl, pos_change = pos_abs.loc[:, instruments], pnl.loc[:, instruments], pos_change.loc[:, instruments]
+
         print( Metrics.metrics(pos_abs.sum(1), pnl.sum(1), pos_change.sum(1)).to_frame('overall').T )
 
         Utilitaires.plotx( risk * pnl.sum(1).cumsum() / pnl.sum(1).std(), title= 'pnl total' ).show()
