@@ -1,8 +1,7 @@
 import pandas as pd 
 import plotly.express as px 
 import multiprocessing as mp 
-from typing import Literal
-
+from typing import Callable, Any, Literal
 class Utilitaires:
 
     n_jobs = mp.cpu_count() - 2
@@ -13,12 +12,8 @@ class Utilitaires:
         ) -> pd.DataFrame: 
 
         df_ = df[~df.index.duplicated(keep='first')]
-        return (
-            df_
-            .dropna(how='all', axis = 1)
-            .resample('1D').ffill().ffill()
-            .shift(step)
-        )
+        return df_.dropna(how='all', axis = 1).resample('1D').ffill().ffill().shift(step)
+        
     @staticmethod
     def permute_levels(df:pd.DataFrame, n:int) -> pd.DataFrame: 
         return df.reorder_levels(
@@ -50,35 +45,6 @@ class Utilitaires:
         return Utilitaires.plotx(df_, title=title)    
     
     @staticmethod
-    def _zscore_ds(ds:pd.Series, method:Literal['expanding', 'rolling', 'ewm'] = 'expanding', lookback:int = 252) -> pd.Series:
-        match method:
-            case 'expanding':
-                return (ds - ds.expanding().mean()) / ds.expanding().std()
-            case 'rolling':
-                return (ds - ds.rolling(lookback).mean()) / ds.rolling(lookback).std()
-            case 'ewm':
-                return (ds - ds.ewm(lookback).mean()) / ds.ewm(lookback).std()
-            case _:
-                raise ValueError(f"method should be in ['expanding', 'rolling', 'ewm'] not {method}")
-
-    @staticmethod
-    def zscore(
-        df: pd.DataFrame | pd.Series, 
-        method: Literal['expanding', 'rolling', 'ewm'] = 'expanding', 
-        lookback: int = 252, skipna: bool = True
-    ) -> pd.DataFrame | pd.Series: 
-        
-        match type(df):
-            case pd.Series:
-                zscore = Utilitaires._zscore_ds(df.dropna() if skipna else df, method, lookback)
-            case pd.DataFrame:
-                zscore = df.apply(lambda x: Utilitaires._zscore_ds(x.dropna() if skipna else x, method, lookback))
-            case _:
-                raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")
-        
-        return zscore.reindex(df.index).ffill()
-    
-    @staticmethod
     def _custom_reindex_like_ds(ds:pd.Series | pd.DataFrame, like:pd.Series) -> pd.Series | pd.DataFrame:
         return ds.reindex(like.dropna().index, method='ffill').ffill().fillna(0)
     
@@ -100,6 +66,35 @@ class Utilitaires:
                 return Utilitaires._custom_reindex_like_df(df, like)
             case _:
                 raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")
+            
+    @staticmethod
+    def _zscore_ds(ds:pd.Series, method:Literal['expanding', 'rolling', 'ewm'] = 'expanding', lookback:int = 252) -> pd.Series:
+        match method:
+            case 'expanding':
+                return (ds - ds.expanding().mean()) / ds.expanding().std()
+            case 'rolling':
+                return (ds - ds.rolling(lookback).mean()) / ds.rolling(lookback).std()
+            case 'ewm':
+                return (ds - ds.ewm(lookback).mean()) / ds.ewm(lookback).std()
+            case _:
+                raise ValueError(f"method should be in ['expanding', 'rolling', 'ewm'] not {method}")
+            
+    @staticmethod
+    def zscore(
+        df: pd.DataFrame | pd.Series, 
+        method: Literal['expanding', 'rolling', 'ewm'] = 'expanding', 
+        lookback: int = 252, skipna: bool = True
+    ) -> pd.DataFrame | pd.Series: 
+        
+        match type(df):
+            case pd.Series:
+                zscore = Utilitaires._zscore_ds(df.dropna() if skipna else df, method, lookback)
+            case pd.DataFrame:
+                zscore = df.apply(lambda x: Utilitaires._zscore_ds(x.dropna() if skipna else x, method, lookback))
+            case _:
+                raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")
+        
+        return zscore.reindex(df.index).ffill()
 
     @staticmethod
     def monkey_patch(): 
@@ -109,14 +104,37 @@ class Utilitaires:
         pd.DataFrame.permute_levels = Utilitaires.permute_levels
         pd.DataFrame.flatten_columns = Utilitaires.flatten_columns
 
+        pd.Series.zscore = Utilitaires.zscore
+        pd.DataFrame.zscore =  Utilitaires.zscore
+
         pd.DataFrame.plotx = Utilitaires.plotx
         pd.Series.plotx = Utilitaires.plotx
 
         pd.DataFrame.plotxd = Utilitaires.plotxd
         pd.Series.plotxd = Utilitaires.plotxd
 
-        pd.Series.zscore = Utilitaires.zscore
-        pd.DataFrame.zscore = Utilitaires.zscore
-
         pd.DataFrame.custom_reindex_like = Utilitaires.custom_reindex_like
         pd.Series.custom_reindex_like = Utilitaires.custom_reindex_like
+
+    @staticmethod
+    def from_Series_operator_to_DataFrame_operator(
+        func:Callable[[pd.Series, Any], pd.Series], 
+    )->Callable[[pd.DataFrame, Any], pd.DataFrame]:
+        
+        def apply_func(sig:pd.Series, args, kwargs) -> pd.Series:
+            return func(sig, *args, **kwargs)
+            
+        def func_decorated(
+                signal:pd.DataFrame, *args, **kwargs
+            ) -> pd.DataFrame:
+
+            tasks = ( (signal.loc[:, col].dropna(), args, kwargs) for col in signal.columns)
+
+            with mp.Pool(Utilitaires.n_jobs) as pool:
+                results = pool.starmap(apply_func, tasks)
+                
+            return pd.concat({
+                col: res for col, res in zip(signal.columns, results)
+            }, axis=1)
+        
+        return func_decorated

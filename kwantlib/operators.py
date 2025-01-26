@@ -70,7 +70,7 @@ class Operator:
         return pd.concat({
             col: res for col, res in zip(signal.columns, results)
         }, axis=1)
-
+    
     @staticmethod
     def cross_moving_average(        
             signal:pd.DataFrame | pd.Series, 
@@ -134,8 +134,6 @@ class Operator:
         pd.DataFrame.proj = Operator.proj
         pd.DataFrame.vote = Operator.vote
         pd.DataFrame.ranking = Operator.ranking
-
-    
 
     # ##############################
     # ##### Other stuff (useless ?)
