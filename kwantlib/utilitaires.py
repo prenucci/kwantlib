@@ -50,11 +50,11 @@ class Utilitaires:
     
     @staticmethod
     def _custom_reindex_like_df(df:pd.DataFrame, like:pd.DataFrame) -> pd.DataFrame:
-        assert df.columns.isin(like.columns).all(), 'all columns of df should be in like'
+        assert df.columns.get_level_values(0).isin(like.columns).all(), 'all columns of df should be in like'
 
         return pd.concat({
             col: Utilitaires._custom_reindex_like_ds(df.loc[:, col], like.loc[:, col].dropna()) 
-            for col in df.columns 
+            for col in df.columns.get_level_values(0).unique() 
         }, axis=1)
     
     @staticmethod
