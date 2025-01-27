@@ -23,7 +23,7 @@ class Strategy:
 
 
         if vol is None:
-            vol = self.returns.shift(1).apply(
+            vol = returns.shift(1).apply(
                 lambda x: x.dropna().rolling(Strategy.vol_target_window).std()
             )
         
