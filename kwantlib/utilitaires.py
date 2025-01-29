@@ -113,6 +113,9 @@ class Utilitaires:
         pd.Series.shift_with_sample = Utilitaires.shift_with_sample
         pd.DataFrame.shift_with_sample = Utilitaires.shift_with_sample
 
+        pd.Series.shift_ignoring_nan = Utilitaires.shift_ignoring_nan
+        pd.DataFrame.shift_ignoring_nan = Utilitaires.shift_ignoring_nan
+
         pd.DataFrame.permute_levels = Utilitaires.permute_levels
         pd.DataFrame.flatten_columns = Utilitaires.flatten_columns
 
