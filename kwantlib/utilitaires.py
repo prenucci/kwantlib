@@ -13,6 +13,18 @@ class Utilitaires:
 
         df_ = df[~df.index.duplicated(keep='first')]
         return df_.dropna(how='all', axis = 1).resample('1D').ffill().ffill().shift(step)
+    
+    @staticmethod
+    def shift_ignoring_nan(
+        df:pd.DataFrame, step:int | str = 0
+    ) -> pd.DataFrame:
+        match type(df):
+            case pd.Series:
+                return df.dropna().shift(step)
+            case pd.DataFrame:
+                return df.dropna(how='all', axis = 1).apply(lambda x: x.dropna().shift(step))
+            case _:
+                raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")
         
     @staticmethod
     def permute_levels(df:pd.DataFrame, n:int) -> pd.DataFrame: 
