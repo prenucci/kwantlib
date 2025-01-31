@@ -71,18 +71,32 @@ class Core:
                 raise ValueError(
                     f'(pd.Series, pd.Series) or (pd.DataFrame, pd.DataFrame | pd.Series) are the only valid types. Not {type(pos_change), type(bid_ask_spread)}'
                 )
-                
+
     @staticmethod
-    def compute_ret(pos:pd.DataFrame, pnl:pd.DataFrame) -> pd.DataFrame:
-        assert pos.columns.equals(pnl.columns), 'pos and pnl must have the same columns'
-        return pnl.div(
-            pos.abs().shift(1), axis=0
-        )
+    def _compute_ret_ds(pos:pd.Series, pnl:pd.Series) -> pd.Series: 
+        pos = pos.reindex(pnl.index, method='ffill').ffill().shift(1).fillna(0)
+        return pnl.div(pos.abs()).fillna(0)
+    
+    @staticmethod
+    def _compute_ret_df(pos:pd.DataFrame, pnl:pd.DataFrame) -> pd.DataFrame:
+        tasks = ( (pos.loc[:, [col]], pnl.loc[:, col].dropna()) for col in pos.columns )
+        with mp.Pool(Utilitaires.n_jobs) as pool:
+            results = pool.starmap(Core._compute_ret_ds, tasks)
+        return pd.concat(results, axis = 1)
+    
+    @staticmethod
+    def compute_ret(pos:pd.DataFrame | pd.Series, pnl:pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
+        match (type(pos), type(pnl)):
+            case (pd.Series, pd.Series):
+                return Core._compute_ret_ds(pos, pnl)
+            case (pd.DataFrame, pd.DataFrame | pd.Series):
+                return Core._compute_ret_df(pos, pnl)
+            case _:
+                raise ValueError(f'pos and pnl must be a pd.Series or pd.DataFrame not {type(pos), type(pnl)}')
     
     @staticmethod
     def compute_compounded_value(pos:pd.DataFrame, pnl:pd.DataFrame) -> pd.DataFrame:
-        return_pnl = Core.compute_ret(pos, pnl)
-        return (1 + return_pnl).cumprod()
+        return (1 + Core.compute_ret(pos, pnl)).cumprod()
     
     @staticmethod
     def compute_drawdown(pnl:pd.DataFrame) -> pd.Series:

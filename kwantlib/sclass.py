@@ -174,40 +174,6 @@ class Strategy:
             pos_change = self.pos_change,
             risk = Strategy.risk
         )
-    
-    def sharpe(self:'Strategy') -> pd.Series:
-        return Metrics.sharpe(self.pnl_daily)
-    
-    def eff_sharpe(self:'Strategy') -> pd.Series:
-        pnl = self.pnl_daily
-        return Metrics.sharpe(pnl[pnl != 0])
-    
-    def turnover(self:'Strategy') -> pd.Series:
-        return Metrics.turnover(self.pos_abs, self.pos_change)
-    
-    def pnl_per_trade(self:'Strategy') -> pd.Series:
-        return Metrics.pnl_per_trade(self.pnl_daily, self.pos_change)
-    
-    def mean_returns(self:'Strategy') -> pd.Series:
-        return Metrics.mean_returns(self.pos_abs, self.pnl_daily)
-    
-    def maxdrawdown(self:'Strategy') -> pd.Series:
-        return Metrics.maxdrawdown(self.pnl_daily)
-    
-    def sortino(self:'Strategy') -> pd.Series:
-        return Metrics.sortino(self.pnl_daily)
-    
-    def ftrading(self:'Strategy') -> pd.Series:
-        return Metrics.ftrading(self.pos_abs)
-    
-    def calamar(self:'Strategy') -> pd.Series:
-        return Metrics.calamar(self.pnl_daily)
-    
-    def win_rate(self:'Strategy') -> pd.Series:
-        return Metrics.win_rate(self.pnl_daily)
-    
-    def long_ratio(self:'Strategy') -> pd.Series:
-        return Metrics.long_ratio(self.pnl_daily, self.pos_abs)
                 
 class StrategyCost(Strategy):
 

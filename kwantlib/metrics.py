@@ -28,7 +28,7 @@ class Metrics:
     def mean_returns(
         pos:pd.DataFrame | pd.Series, pnl:pd.DataFrame | pd.Series,
     ) -> pd.Series | float:
-        return pnl.mean() / pos.abs().mean()
+        return Core.compute_ret(pos, pnl).mean()
     
     @staticmethod
     def maxdrawdown(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
@@ -83,7 +83,7 @@ class Metrics:
             'sortino': Metrics.sortino(pnl),
             'ftrading': Metrics.ftrading(pos),
             'win_rate': Metrics.win_rate(pnl),
-            'r_sharpe': Metrics.sharpe(pnl.fillna(0).rolling(252).mean()),
+            'r_sharpe': Metrics.sharpe(pnl.fillna(0).rolling(252).mean()) / 16,
         })
     
     @staticmethod
