@@ -70,7 +70,9 @@ class Utilitaires:
         }, axis=1)
     
     @staticmethod
-    def custom_reindex_like(df:pd.DataFrame | pd.Series, like:pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
+    def custom_reindex_like(
+        df:pd.DataFrame | pd.Series, like:pd.DataFrame | pd.Series
+    ) -> pd.DataFrame | pd.Series:
         match type(df):
             case pd.Series:
                 return Utilitaires._custom_reindex_like_ds(df, like)
@@ -80,7 +82,9 @@ class Utilitaires:
                 raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")
             
     @staticmethod
-    def _zscore_ds(ds:pd.Series, method:Literal['expanding', 'rolling', 'ewm'] = 'expanding', lookback:int = 252) -> pd.Series:
+    def _zscore_ds(
+        ds:pd.Series, method:Literal['expanding', 'rolling', 'ewm'] = 'expanding', lookback:int = 252
+    ) -> pd.Series:
         match method:
             case 'expanding':
                 return (ds - ds.expanding().mean()) / ds.expanding().std()
