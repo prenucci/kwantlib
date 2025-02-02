@@ -1,7 +1,7 @@
 import pandas as pd 
 import numpy  as np 
 import multiprocessing as mp 
-from typing import Iterable, List
+from typing import List, Callable, Any, Tuple, Dict
 
 from .utilitaires import Utilitaires
 
@@ -28,7 +28,7 @@ class Operator:
 
     @staticmethod
     def _cross_moving_average_ds(
-            signal:pd.Series, smooth_params:Iterable[int], lookback_params:Iterable[int], is_ewm:bool
+            signal:pd.Series, smooth_params:List[int], lookback_params:List[int], is_ewm:bool
         ) -> pd.DataFrame:
 
         window_params = set(x for x in smooth_params + lookback_params)
@@ -56,7 +56,7 @@ class Operator:
 
     @staticmethod
     def _cross_moving_average_df(
-            signal:pd.DataFrame, smooth_params:Iterable[int], lookback_params:Iterable[int], 
+            signal:pd.DataFrame, smooth_params:List[int], lookback_params:List[int], 
             is_ewm:bool, skipna:bool, 
         ) -> pd.DataFrame:
 
@@ -74,8 +74,8 @@ class Operator:
     @staticmethod
     def cross_moving_average(        
             signal:pd.DataFrame | pd.Series, 
-            smooth_params:Iterable[int] = (1, 2, 3, 4, 6, 8, 10,), 
-            lookback_params:Iterable[int] = (2, 3, 4, 5, 6, 10, 12, 14, 17, 20, 28, 36, 44, 66,), 
+            smooth_params:List[int] = (1, 2, 3, 4, 6, 8, 10,), 
+            lookback_params:List[int] = (2, 3, 4, 5, 6, 10, 12, 14, 17, 20, 28, 36, 44, 66,), 
             is_ewm:bool = False, skipna:bool = True,
         ) -> pd.DataFrame: 
 
@@ -110,7 +110,7 @@ class Operator:
 
     @staticmethod
     def ranking(
-            signal:pd.DataFrame, k_values:Iterable[int] = (3, 5, 7,),
+            signal:pd.DataFrame, k_values:List[int] = (3, 5, 7,),
         ) -> pd.DataFrame: 
         """
         Compute the cross-sectional rank of the signal df. 
@@ -135,14 +135,31 @@ class Operator:
         pd.DataFrame.vote = Operator.vote
         pd.DataFrame.ranking = Operator.ranking
 
+    @staticmethod
+    def chain(
+        signal:pd.DataFrame, 
+        operators:List[Tuple[Callable[[pd.DataFrame, Any], pd.DataFrame], Tuple[Any], Dict[str, Any]]]
+    ) -> pd.DataFrame:
+        for operator, *rest in operators:
+            args, kwargs = (), {}
+            for item in rest:
+                if isinstance(item, tuple):
+                    args = item
+                elif isinstance(item, dict):
+                    kwargs = item
+                else:
+                    raise ValueError(f"Invalid item type: {type(item)}")
+            signal = operator(signal, *args, **kwargs)
+        return signal
+
     # ##############################
     # ##### Other stuff (useless ?)
     # ##############################
 
     # def tgt(
     #     signal:pd.DataFrame, 
-    #     smooth_params:Iterable[int] = (1, 2, 3, 4, 6, 8, 10,), 
-    #     lookback_params:Iterable[int] = (2, 3, 4, 5, 6, 10, 12, 14, 17, 20, 28, 36, 44, 66,), 
+    #     smooth_params:List[int] = (1, 2, 3, 4, 6, 8, 10,), 
+    #     lookback_params:List[int] = (2, 3, 4, 5, 6, 10, 12, 14, 17, 20, 28, 36, 44, 66,), 
     #     ) -> pd.DataFrame: 
 
     #     @cache
@@ -187,8 +204,8 @@ class Operator:
 
     # def macd(
     #     signal: pd.DataFrame,
-    #     smooth_params:Iterable[int] = (1, 2, 3, 4, 6, 8, 10,), 
-    #     lookback_params:Iterable[int] = (2, 3, 4, 5, 6, 10, 12, 14, 17, 20, 28, 36, 44, 66,), 
+    #     smooth_params:List[int] = (1, 2, 3, 4, 6, 8, 10,), 
+    #     lookback_params:List[int] = (2, 3, 4, 5, 6, 10, 12, 14, 17, 20, 28, 36, 44, 66,), 
     # ) -> pd.DataFrame:
             
     #     def _macd(signal_:pd.Series, smooth:int,lookback:int) -> pd.Series: 
