@@ -75,14 +75,6 @@ class Strategy:
     @property
     def compounded_value(self:'Strategy') -> pd.Series:
         return Core.compute_compounded_value(self.position, self.pnl)
-    
-    @property
-    def pnl_long(self:'Strategy') -> pd.Series:
-        return self.pnl[self.pos.shift(1) > 0].sum(1)
-    
-    @property
-    def pnl_short(self:'Strategy') -> pd.Series:
-        return self.pnl[self.pos.shift(1) < 0].sum(1)
         
     ### Operators
 
@@ -160,6 +152,14 @@ class Strategy:
         if hasattr(pos_change.index, 'date'):
             return pos_change.groupby(pos_change.index.date).sum()
         return pos_change
+    
+    @property
+    def pnl_long(self:'Strategy') -> pd.Series:
+        return self.pnl[self.pos.shift(1) > 0].sum(1)
+    
+    @property
+    def pnl_short(self:'Strategy') -> pd.Series:
+        return self.pnl[self.pos.shift(1) < 0].sum(1)
     
     def metrics(self:'Strategy') -> pd.DataFrame:
         return Metrics.metrics(self.pos_abs, self.pnl_daily, self.pos_change)

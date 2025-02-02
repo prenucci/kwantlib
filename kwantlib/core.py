@@ -60,7 +60,8 @@ class Core:
 
     @staticmethod
     def compute_cost(
-        pos_change:pd.DataFrame | pd.Series, bid_ask_spread:pd.DataFrame | pd.Series, fee_per_transaction:float
+        pos_change:pd.DataFrame | pd.Series, bid_ask_spread:pd.DataFrame | pd.Series, 
+        fee_per_transaction:float
     ) -> pd.DataFrame | pd.Series:
         match (type(pos_change), type(bid_ask_spread)):
             case (pd.Series, pd.Series):
