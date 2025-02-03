@@ -28,7 +28,10 @@ class Operator:
 
     @staticmethod
     def _cross_moving_average_ds(
-            signal:pd.Series, smooth_params:Iterable[int], lookback_params:Iterable[int], is_ewm:bool
+            signal:pd.Series, 
+            smooth_params:Iterable[int], 
+            lookback_params:Iterable[int], 
+            is_ewm:bool, is_proj:bool
         ) -> pd.DataFrame:
 
         window_params = set(x for x in smooth_params + lookback_params)
@@ -52,16 +55,22 @@ class Operator:
 
         del mov_avg, mov_std
 
-        return new_signal.where(new_signal.abs() < 5, new_signal.apply(np.sign) * 5)
+        new_signal = new_signal.where(new_signal.abs() < 5, new_signal.apply(np.sign) * 5)
 
+        return new_signal if not is_proj else new_signal.mean(1)
     @staticmethod
     def _cross_moving_average_df(
-            signal:pd.DataFrame, smooth_params:Iterable[int], lookback_params:Iterable[int], 
-            is_ewm:bool, skipna:bool, 
+            signal:pd.DataFrame, 
+            smooth_params:Iterable[int], 
+            lookback_params:Iterable[int], 
+            is_proj:bool, is_ewm:bool, skipna:bool, 
         ) -> pd.DataFrame:
 
         tasks = ( 
-            (signal.loc[:, col].dropna() if skipna else signal.loc[:, col], smooth_params, lookback_params, is_ewm) 
+            (
+                signal.loc[:, col].dropna() if skipna else signal.loc[:, col], 
+                smooth_params, lookback_params, is_ewm, is_proj
+            ) 
             for col in signal.columns
         )
         with mp.Pool(Utilitaires.n_jobs) as pool:
@@ -76,7 +85,7 @@ class Operator:
             signal:pd.DataFrame | pd.Series, 
             smooth_params:Iterable[int] = (1, 2, 3, 4, 6, 8, 10,), 
             lookback_params:Iterable[int] = (2, 3, 4, 5, 6, 10, 12, 14, 17, 20, 28, 36, 44, 66,), 
-            is_ewm:bool = False, skipna:bool = True,
+            is_proj:bool = False, is_ewm:bool = False, skipna:bool = True, 
         ) -> pd.DataFrame: 
 
         """
@@ -86,9 +95,9 @@ class Operator:
 
         match type(signal):
             case pd.Series:
-                return Operator._cross_moving_average_ds(signal, smooth_params, lookback_params, is_ewm)
+                return Operator._cross_moving_average_ds(signal, smooth_params, lookback_params, is_ewm, is_proj)
             case pd.DataFrame:
-                return Operator._cross_moving_average_df(signal, smooth_params, lookback_params, is_ewm, skipna)
+                return Operator._cross_moving_average_df(signal, smooth_params, lookback_params, is_ewm, skipna, is_proj)
             case _:
                 raise ValueError(f"signal should be a pd.Series or pd.DataFrame not {type(signal)}")
 
