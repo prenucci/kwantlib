@@ -31,7 +31,7 @@ class Operator:
             signal:pd.Series, 
             smooth_params:Iterable[int], 
             lookback_params:Iterable[int], 
-            is_ewm:bool, is_proj:bool
+            is_proj:bool, is_ewm:bool,
         ) -> pd.DataFrame:
 
         window_params = set(x for x in smooth_params + lookback_params)
@@ -58,6 +58,7 @@ class Operator:
         new_signal = new_signal.where(new_signal.abs() < 5, new_signal.apply(np.sign) * 5)
 
         return new_signal if not is_proj else new_signal.mean(1)
+    
     @staticmethod
     def _cross_moving_average_df(
             signal:pd.DataFrame, 
@@ -95,9 +96,13 @@ class Operator:
 
         match type(signal):
             case pd.Series:
-                return Operator._cross_moving_average_ds(signal, smooth_params, lookback_params, is_ewm, is_proj)
+                return Operator._cross_moving_average_ds(
+                    signal, smooth_params, lookback_params, is_proj, is_ewm
+                )
             case pd.DataFrame:
-                return Operator._cross_moving_average_df(signal, smooth_params, lookback_params, is_ewm, skipna, is_proj)
+                return Operator._cross_moving_average_df(
+                    signal, smooth_params, lookback_params, is_proj, is_ewm, skipna, 
+                )
             case _:
                 raise ValueError(f"signal should be a pd.Series or pd.DataFrame not {type(signal)}")
 
