@@ -136,11 +136,11 @@ class Metrics:
 
         print( Metrics.metrics(pos_abs.sum(1), pnl.sum(1), pos_change.sum(1)).to_frame('overall').T )
 
-        aum = Core.compute_aum(pnl.sum(1))
+        aum = Core.compute_aum(pnl.sum(1) / pnl.sum(1).std())
 
         Utilitaires.plotx( risk * pnl.sum(1).cumsum() / pnl.sum(1).std(), title= 'pnl total' ).show()
         Utilitaires.plotx( risk * Core.compute_drawdown(pnl.sum(1)) / pnl.sum(1).std(), title='drawdown' ).show()
-        Utilitaires.plotx( aum, title='AUM', log_y=True).show()
+        px.line(aum, title='AUM', log_y=True).show()
 
         if len(pnl.columns) < 30:
             Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
