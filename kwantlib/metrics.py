@@ -25,12 +25,6 @@ class Metrics:
         return 1e4 * pnl.mean() / pos_change.mean()
     
     @staticmethod
-    def mean_returns(
-        pos:pd.DataFrame | pd.Series, pnl:pd.DataFrame | pd.Series,
-    ) -> pd.Series | float:
-        return Core.compute_ret(pos, pnl).mean()
-    
-    @staticmethod
     def maxdrawdown(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
         return - Core.compute_drawdown(pnl).min() / pnl.std()
     
@@ -77,7 +71,6 @@ class Metrics:
             'raw_sharpe': Metrics.sharpe(pnl),
             'turnover': Metrics.turnover(pos, pos_change),
             'pnl_per_trade': Metrics.pnl_per_trade(pnl, pos_change),
-            'mean_returns': Metrics.mean_returns(pnl, pos),
             'maxdrawdown': Metrics.maxdrawdown(pnl),
             'calamar': Metrics.calamar(pnl),
             'sortino': Metrics.sortino(pnl),

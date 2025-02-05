@@ -103,13 +103,3 @@ class Core:
     def compute_drawdown(pnl:pd.DataFrame) -> pd.Series:
         return - ( pnl.cumsum().cummax() - pnl.cumsum() ) 
     
-    @staticmethod
-    def compute_cum_aum(
-        pnl:pd.Series, 
-        risk:float = 10
-    ) -> pd.DataFrame:
-        
-        assert isinstance(pnl, pd.Series), 'pnl must be a pd.Series'
-        pnl_scaled = (risk / 1600) * pnl / pnl.std()
-        return (1 + pnl_scaled).cumprod()
-    
