@@ -146,7 +146,7 @@ class Metrics:
         drawdown = ( pnl_cum / pnl_cum.cummax() - 1 ) if is_aum_cum else ( pnl_cum.cummax() - pnl_cum )
 
         px.line(pnl_cum, title='Pnl cum',  log_y= is_aum_cum).show()
-        px.line(drawdown, title='drawdown', log_y= is_aum_cum).show()
+        px.line(drawdown, title='drawdown').show()
 
         if len(pnl.columns) < 30:
             Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
