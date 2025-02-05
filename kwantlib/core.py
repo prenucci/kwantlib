@@ -1,7 +1,7 @@
 import pandas as pd 
 import numpy as np 
 import multiprocessing as mp 
-
+from typing import Iterable
 from .utilitaires import Utilitaires
 
 class Core:
@@ -102,3 +102,16 @@ class Core:
     @staticmethod
     def compute_drawdown(pnl:pd.DataFrame) -> pd.Series:
         return - ( pnl.cumsum().cummax() - pnl.cumsum() ) 
+    
+    @staticmethod
+    def compute_aum(
+        pnl:pd.Series, risks: Iterable[float] = (x / 100 for x in range(1, 10))
+    ) -> pd.DataFrame:
+        
+        assert isinstance(pnl, pd.Series), 'pnl must be a pd.Series'
+        pnl = pnl / pnl.std()
+        return pd.concat({
+            f'Annual vol: {risk}%': (1 + (risk / 16) * pnl).cumprod()
+            for risk in risks
+        }, axis = 1)
+    
