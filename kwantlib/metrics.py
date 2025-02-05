@@ -135,15 +135,15 @@ class Metrics:
         instruments = pnl.columns.intersection(pos_abs.columns).intersection(pos_change.columns)
         pos_abs, pnl, pos_change = pos_abs.loc[:, instruments], pnl.loc[:, instruments], pos_change.loc[:, instruments]
 
-        pnl_total = pnl.sum(1)  
-        pos_abs_total = pos_abs.sum(1)
-        pos_change_total = pos_change.sum(1)
+        pnl_total = pnl.fillna(0).sum(1)  
+        pos_abs_total = pos_abs.ffill().fillna(0).sum(1)
+        pos_change_total = pos_change.fillna(0).sum(1)
 
         print(Metrics.metrics(pos_abs_total, pnl_total, pos_change_total).to_frame('overall').T)
 
         pnl_scaled = (risk / 16) * pnl_total / pnl_total.std()
         pnl_cum = (1 + ( pnl_scaled / 100 )).cumprod() if is_aum_cum else pnl_scaled.cumsum()
-        drawdown = ( pnl_cum / pnl_cum.cummax() - 1 ) if is_aum_cum else ( pnl_cum.cummax() - pnl_cum )
+        drawdown = ( pnl_cum - pnl_cum.cummax() ) / pnl_cum.cummax() if is_aum_cum else ( pnl_cum - pnl_cum.cummax() )
 
         px.line(pnl_cum, title='Pnl cum',  log_y= is_aum_cum).show()
         px.line(drawdown, title='drawdown').show()
