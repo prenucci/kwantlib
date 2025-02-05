@@ -105,13 +105,13 @@ class Core:
     
     @staticmethod
     def compute_aum(
-        pnl:pd.Series, risks: Iterable[float] = (x / 100 for x in range(1, 10))
+        pnl:pd.Series
     ) -> pd.DataFrame:
         
         assert isinstance(pnl, pd.Series), 'pnl must be a pd.Series'
         pnl = pnl / pnl.std()
         return pd.concat({
             f'Annual vol: {risk}%': (1 + (risk / 16) * pnl).cumprod()
-            for risk in risks
+            for risk in [x / 100 for x in range(1, 20)]
         }, axis = 1)
     
