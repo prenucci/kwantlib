@@ -145,7 +145,7 @@ class Metrics:
         pnl_cum = (1 + ( pnl_scaled / 100 )).cumprod() if is_aum_cum else pnl_scaled.cumsum()
         drawdown = ( pnl_cum - pnl_cum.cummax() ) / pnl_cum.cummax() if is_aum_cum else ( pnl_cum - pnl_cum.cummax() )
 
-        px.line(pnl_cum, title='Pnl cum',  log_y= is_aum_cum).show()
+        px.line(pnl_cum, title='Pnl cum', log_y= is_aum_cum).show()
         px.line(drawdown, title='drawdown').show()
 
         if len(pnl.columns) < 30:
