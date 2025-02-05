@@ -120,7 +120,8 @@ class Metrics:
         
     @staticmethod
     def backtest(
-        pnl:pd.DataFrame, pos:pd.DataFrame = None, pos_change:pd.DataFrame = None, risk:float = 1
+        pnl:pd.DataFrame, pos:pd.DataFrame = None, pos_change:pd.DataFrame = None, 
+        is_aum_cum:bool = False, risk:float = 10,
     ) -> pd.DataFrame:   
         
         if pos is None:
@@ -134,13 +135,17 @@ class Metrics:
         instruments = pnl.columns.intersection(pos_abs.columns).intersection(pos_change.columns)
         pos_abs, pnl, pos_change = pos_abs.loc[:, instruments], pnl.loc[:, instruments], pos_change.loc[:, instruments]
 
-        print( Metrics.metrics(pos_abs.sum(1), pnl.sum(1), pos_change.sum(1)).to_frame('overall').T )
+        pnl_total = pnl.sum(1)  
+        pos_abs_total = pos_abs.sum(1)
+        pos_change_total = pos_change.sum(1)
 
-        aum = Core.compute_aum(pnl.sum(1) / pnl.sum(1).std())
+        print(Metrics.metrics(pos_abs_total, pnl_total, pos_change_total).to_frame('overall').T)
 
-        Utilitaires.plotx( risk * pnl.sum(1).cumsum() / pnl.sum(1).std(), title= 'pnl total' ).show()
-        Utilitaires.plotx( risk * Core.compute_drawdown(pnl.sum(1)) / pnl.sum(1).std(), title='drawdown' ).show()
-        px.line(aum, title='AUM', log_y=True).show()
+        pnl_scaled = (risk / 16) * pnl_total / pnl_total.std()
+        pnl_cum = (1 + ( pnl_scaled / 100 )).cumprod() if is_aum_cum else pnl_scaled.cumsum()
+
+        px.line(pnl_cum,                    title='Pnl cum',  log_y= is_aum_cum).show()
+        px.line(pnl_cum - pnl_cum.cummax(), title='drawdown', log_y= is_aum_cum).show()
 
         if len(pnl.columns) < 30:
             Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
