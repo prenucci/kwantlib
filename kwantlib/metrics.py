@@ -121,7 +121,7 @@ class Metrics:
     @staticmethod
     def backtest(
         pnl:pd.DataFrame, pos:pd.DataFrame = None, pos_change:pd.DataFrame = None, 
-        is_aum_cum:bool = False, risk:float = 10,
+        is_aum_cum:bool = False, risk:float = 1,
     ) -> pd.DataFrame:   
         
         if pos is None:
