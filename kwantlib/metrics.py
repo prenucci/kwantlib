@@ -51,18 +51,6 @@ class Metrics:
         return pnl.where(pos_shifted > 0, 0).sum() / pnl.sum()
     
     ### Backtest ###
-
-    @staticmethod
-    def _resample_daily(
-        pos_abs:pd.DataFrame | pd.Series, pnl:pd.DataFrame | pd.Series, pos_change:pd.DataFrame | pd.Series
-    ) -> tuple[pd.DataFrame | pd.Series, pd.DataFrame | pd.Series, pd.DataFrame | pd.Series]:
-        if hasattr(pos_abs.index, 'date'):
-            pos_abs = pos_abs.groupby(pos_abs.index.date).sum()
-        if hasattr(pnl.index, 'date'):
-            pnl = pnl.groupby(pnl.index.date).sum()
-        if hasattr(pos_change.index, 'date'):
-            pos_change = pos_change.groupby(pos_change.index.date).sum()
-        return pos_abs, pnl, pos_change
     
     @staticmethod
     def _metrics_ds(pos:pd.Series, pnl:pd.Series, pos_change:pd.Series) -> pd.Series:
@@ -91,6 +79,18 @@ class Metrics:
         return pd.concat({
             col:result_col for col, result_col in zip(pos.columns, results)
         }, axis=1).T.sort_values(by='eff_sharpe', ascending=False)
+    
+    @staticmethod
+    def _resample_daily(
+        pos_abs:pd.DataFrame | pd.Series, pnl:pd.DataFrame | pd.Series, pos_change:pd.DataFrame | pd.Series
+    ) -> tuple[pd.DataFrame | pd.Series, pd.DataFrame | pd.Series, pd.DataFrame | pd.Series]:
+        if hasattr(pos_abs.index, 'date'):
+            pos_abs = pos_abs.groupby(pos_abs.index.date).mean()
+        if hasattr(pnl.index, 'date'):
+            pnl = pnl.groupby(pnl.index.date).sum()
+        if hasattr(pos_change.index, 'date'):
+            pos_change = pos_change.groupby(pos_change.index.date).sum()
+        return pos_abs, pnl, pos_change
         
     @staticmethod
     def metrics(
