@@ -113,8 +113,9 @@ class Metrics:
         
     @staticmethod
     def backtest(
-        pnl:pd.DataFrame, pos:pd.DataFrame = None, pos_change:pd.DataFrame = None, 
-        is_aum_cum:bool = False, risk:float = 1,
+        pnl:pd.DataFrame, pos:pd.DataFrame = None, 
+        pos_change:pd.DataFrame = None, 
+        risk:float = 1, is_aum_cum:bool = False
     ) -> pd.DataFrame:   
         
         if pos is None:
@@ -154,12 +155,12 @@ class Metrics:
     def quick_backtest(
         returns:pd.DataFrame, signal:pd.DataFrame, 
         vol:pd.DataFrame = None, bid_ask_spread:pd.DataFrame = None, 
-        risk:float = 1, fee_per_transaction:float = 1e-4
+        risk:float = 1, is_aum_cum:bool = False, fee_per_transaction:float = 1e-4,
     ) -> pd.DataFrame:
         
         pos = Core.compute_position(signal, vol) if vol is not None else signal
         pnl = Core.compute_pnl(pos, returns)
         if bid_ask_spread is not None:
             pnl -= Core.compute_cost(pos.diff().abs(), bid_ask_spread, fee_per_transaction)
-        return Metrics.backtest(pnl, pos, pos.diff().abs(), risk)
+        return Metrics.backtest(pnl, pos, pos.diff().abs(), risk, is_aum_cum)
 
