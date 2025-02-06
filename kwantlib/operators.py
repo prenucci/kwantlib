@@ -70,7 +70,7 @@ class Operator:
         tasks = ( 
             (
                 signal.loc[:, col].dropna() if skipna else signal.loc[:, col], 
-                smooth_params, lookback_params, is_ewm, is_proj
+                smooth_params, lookback_params, is_proj, is_ewm
             ) 
             for col in signal.columns
         )
