@@ -30,7 +30,8 @@ class Metrics:
     
     @staticmethod
     def maxdrawdown(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
-        return - Core.compute_drawdown(pnl).min() / pnl.std()
+        drawdown = (pnl.cumsum().cummax() - pnl.cumsum()).max()
+        return - drawdown / pnl.std()
     
     @staticmethod
     def calamar(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
@@ -56,7 +57,7 @@ class Metrics:
     
     @staticmethod
     def std_without_leverage(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
-        return  Metrics.mean_return(pnl, pos) / Metrics.sharpe(pnl) 
+        return 100 * 16 * pnl.std() / pos.abs().mean()
     
     
     ### Backtest ###
