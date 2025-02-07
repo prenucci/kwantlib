@@ -175,7 +175,6 @@ class Metrics:
         metrics = Metrics.backtest(pnl, pos, pos_change, risk, is_aum_cum)
 
         corr = pnl.corr()
-        corr = corr.where(corr != 1)
         px.imshow(corr.where(corr != 1, np.nan)).show()
 
         pnl_total = pnl.fillna(0).sum(1)
