@@ -75,7 +75,7 @@ class Metrics:
             'ftrading': Metrics.ftrading(pos),
             'win_rate': Metrics.win_rate(pnl),
             'r_sharpe': Metrics.sharpe(pnl.fillna(0).rolling(252).mean()) / 16,
-            'std_without_leverage': Metrics.std_without_leverage(pos, pos_change)
+            'std_without_leverage': Metrics.std_without_leverage(pnl, pos)
         })
     
     @staticmethod
