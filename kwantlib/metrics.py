@@ -56,10 +56,7 @@ class Metrics:
     
     @staticmethod
     def std_without_leverage(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
-        sharpe = Metrics.sharpe(pnl)
-        mean_return = Metrics.mean_return(pnl, pos)
-        return mean_return / sharpe 
-        return 100 * 16 * pnl.std() / pos.abs().mean()
+        return  Metrics.mean_return(pnl, pos) / Metrics.sharpe(pnl) 
     
     
     ### Backtest ###
