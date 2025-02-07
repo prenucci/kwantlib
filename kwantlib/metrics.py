@@ -55,8 +55,12 @@ class Metrics:
         return pnl.where(pos_shifted > 0, 0).sum() / pnl.sum()
     
     @staticmethod
-    def leverage_factor(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
-        return 100 *16 * pnl.std() / pos.abs().mean()
+    def std_without_leverage(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
+        sharpe = Metrics.sharpe(pnl)
+        mean_return = Metrics.mean_return(pnl, pos)
+        return mean_return / sharpe 
+        return 100 * 16 * pnl.std() / pos.abs().mean()
+    
     
     ### Backtest ###
     
@@ -74,7 +78,7 @@ class Metrics:
             'ftrading': Metrics.ftrading(pos),
             'win_rate': Metrics.win_rate(pnl),
             'r_sharpe': Metrics.sharpe(pnl.fillna(0).rolling(252).mean()) / 16,
-            'leverage_factor': Metrics.leverage_factor(pos, pos_change)
+            'std_without_leverage': Metrics.std_without_leverage(pos, pos_change)
         })
     
     @staticmethod
