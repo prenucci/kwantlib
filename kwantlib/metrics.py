@@ -186,8 +186,7 @@ class Metrics:
             for n in [126, 252, 504, 1008]
         }, axis=1)
 
-        px.line(rolling_sharpe, title='rolling sharpe').show()
-        
+        Utilitaires.plotx( rolling_sharpe, title='rolling sharpe' ).show()
         Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
 
         return metrics
