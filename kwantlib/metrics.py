@@ -179,7 +179,7 @@ class Metrics:
 
         pnl_total = pnl.fillna(0).sum(1)
         if hasattr(pnl.index, 'date'):
-            pnl_total = pnl.groupby(pnl.index.date).sum()
+            pnl_total = pnl_total.groupby(pnl_total.index.date).sum()
 
         rolling_sharpe = pd.concat({
             f'{n}D': 16 * pnl_total.rolling(n).mean() / pnl_total.rolling(n).std()
