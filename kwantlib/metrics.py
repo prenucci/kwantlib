@@ -191,9 +191,9 @@ class Metrics:
         rolling_sharpe = pd.concat({
             f'{n}D': 16 * pnl_total.rolling(n).mean() / pnl_total.rolling(n).std()
             for n in [int(252 * x) for x in [1/2, 1, 2, 4, 8]]
+        } | {
+            'expanding': 16 * pnl_total.expanding(min_periods=504).mean() / pnl_total.expanding(min_periods=504).std()
         }, axis=1)
-
-        rolling_sharpe['expanding'] = 16 * pnl_total.expanding().mean() / pnl_total.expanding().std()
 
         Utilitaires.plotx( rolling_sharpe.ffill(), title='rolling sharpe' ).show()
         Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
