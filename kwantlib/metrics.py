@@ -149,10 +149,6 @@ class Metrics:
 
         if len(pnl.columns) < 30:
             Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
-        if len(pnl.columns) < 100:
-            corr = pnl.corr()
-            corr = corr.where(corr != 1)
-            px.imshow(corr.where(corr != 1, np.nan)).show()
 
         return Metrics.metrics(pos_abs, pnl, pos_change)
     
@@ -168,4 +164,39 @@ class Metrics:
         if bid_ask_spread is not None:
             pnl -= Core.compute_cost(pos.diff().abs(), bid_ask_spread, fee_per_transaction)
         return Metrics.backtest(pnl, pos, pos.diff().abs(), risk, is_aum_cum)
+    
+    @staticmethod
+    def long_backtest(
+        pnl:pd.DataFrame, pos:pd.DataFrame = None, 
+        pos_change:pd.DataFrame = None, 
+        risk:float = 1, is_aum_cum:bool = False
+    ) -> pd.DataFrame:   
+        
+        metrics = Metrics.backtest(pnl, pos, pos_change, risk, is_aum_cum)
+
+        corr = pnl.corr()
+        corr = corr.where(corr != 1)
+        px.imshow(corr.where(corr != 1, np.nan)).show()
+
+        pnl_total = pnl.fillna(0).sum(1)
+        if hasattr(pnl.index, 'date'):
+            pnl_total = pnl.groupby(pnl.index.date).sum()
+
+        rolling_sharpe = pd.concat({
+            f'{n}D': 16 * pnl_total.rolling(n).mean() / pnl_total.rolling(n).std()
+            for n in [126, 252, 504, 1008]
+        }, axis=1)
+
+        px.line(rolling_sharpe, title='rolling sharpe').show()
+        
+        Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
+
+        return metrics
+
+
+
+
+
+
+
 
