@@ -164,14 +164,15 @@ class Metrics:
     def quick_backtest(
         returns:pd.DataFrame, signal:pd.DataFrame, 
         vol:pd.DataFrame = None, bid_ask_spread:pd.DataFrame = None, 
-        risk:float = 1, is_aum_cum:bool = False, fee_per_transaction:float = 1e-4,
+        risk:float = 1, is_aum_cum:bool = False, 
+        fee_per_transaction:float = 1e-4,
     ) -> pd.DataFrame:
         
         pos = Core.compute_position(signal, vol) if vol is not None else signal
         pnl = Core.compute_pnl(pos, returns)
         if bid_ask_spread is not None:
             pnl -= Core.compute_cost(pos.diff().abs(), bid_ask_spread, fee_per_transaction)
-        return Metrics.backtest(pnl, pos, pos.diff().abs(), risk, is_aum_cum)
+        return Metrics.backtest(pnl=pnl, pos=pos, risk=risk, is_aum_cum=is_aum_cum)
     
     @staticmethod
     def long_backtest(
@@ -186,9 +187,9 @@ class Metrics:
         # px.imshow(corr.where(corr != 1, np.nan)).show()
 
         sns.clustermap(
-            corr,
-            method='average',metric='euclidean',
-            cmap='RdBu', vmin=-1, vmax=1, figsize=(8, 4), 
+            data=corr,metric='euclidean',
+            vmin=-1, vmax=1,
+            cmap='RdBu', figsize=(8, 4), 
             annot=True, fmt='.2f',
         ).fig.show()
 
