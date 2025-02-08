@@ -1,7 +1,7 @@
 import pandas as pd 
 import multiprocessing as mp 
 import plotly.express as px
-import numpy as np
+import seaborn as sns
 
 from .utilitaires import Utilitaires
 from .core import Core
@@ -156,7 +156,7 @@ class Metrics:
         px.line(drawdown, title='drawdown').show()
 
         if len(pnl.columns) < 30:
-            Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
+            Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl decomposed' ).show()
 
         return Metrics.metrics(pos_abs, pnl, pos_change)
     
@@ -183,7 +183,14 @@ class Metrics:
         metrics = Metrics.backtest(pnl, pos, pos_change, risk, is_aum_cum)
 
         corr = pnl.corr()
-        px.imshow(corr.where(corr != 1, np.nan)).show()
+        # px.imshow(corr.where(corr != 1, np.nan)).show()
+
+        sns.clustermap(
+            corr,
+            method='average',metric='euclidean',
+            cmap='RdBu', vmin=-1, vmax=1, figsize=(8, 4), 
+            annot=True, fmt='.2f',
+        ).fig.show()
 
         pnl_total = pnl.fillna(0).sum(1)
         if hasattr(pnl.index, 'date'):
