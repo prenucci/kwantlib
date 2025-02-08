@@ -30,8 +30,9 @@ class Metrics:
     
     @staticmethod
     def maxdrawdown(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
-        drawdown = (pnl.cumsum().cummax() - pnl.cumsum()).max()
-        return - drawdown / pnl.std()
+        return (
+            pnl.cumsum().cummax() - pnl.cumsum()
+        ).max() / pnl.std()
     
     @staticmethod
     def calamar(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
