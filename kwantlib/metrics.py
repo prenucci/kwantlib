@@ -183,7 +183,7 @@ class Metrics:
         
         metrics = Metrics.backtest(pnl, pos, pos_change, risk, is_aum_cum)
 
-        corr = pnl.corr()
+        corr = pnl.corr().fillna(0)
         # px.imshow(corr.where(corr != 1, np.nan)).show()
 
         sns.clustermap(
