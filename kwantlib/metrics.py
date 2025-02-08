@@ -191,7 +191,7 @@ class Metrics:
             vmin=-1, vmax=1,
             cmap='RdBu', figsize=(8, 4), 
             annot=True, fmt='.2f',
-        ).fig.show()
+        ).figure.show()
 
         pnl_total = pnl.fillna(0).sum(1)
         if hasattr(pnl.index, 'date'):
