@@ -1,8 +1,6 @@
 import pandas as pd 
 import multiprocessing as mp 
 import plotly.express as px
-import seaborn as sns
-
 from .utilitaires import Utilitaires
 from .core import Core
 
@@ -123,6 +121,46 @@ class Metrics:
                 return Metrics._metrics_df(pos_abs, pnl, pos_change)
             case _:
                 raise ValueError('pos, pnl and pos_change must be of the same type')
+    
+    @staticmethod
+    def _get_total(
+        pos:pd.DataFrame | pd.Series, pnl:pd.DataFrame | pd.Series, pos_change:pd.DataFrame | pd.Series
+    ) -> tuple[pd.Series, pd.Series, pd.Series]:
+        pos_abs, pnl, pos_change = Metrics._resample_daily(pos.abs(), pnl, pos_change)
+
+        instruments = pnl.columns.intersection(pos_abs.columns).intersection(pos_change.columns)
+        pos_abs, pnl, pos_change = pos_abs.loc[:, instruments], pnl.loc[:, instruments], pos_change.loc[:, instruments]
+
+        pnl_total = pnl.fillna(0).sum(1)  
+        pos_abs_total = pos_abs.ffill().fillna(0).sum(1)
+        pos_change_total = pos_change.fillna(0).sum(1)
+    
+        return pos_abs_total, pnl_total, pos_change_total
+    
+    @staticmethod
+    def rolling_sharpe(pnl:pd.Series, periods:list[int] = [1/2, 1, 2, 4, 8]) -> pd.DataFrame:
+        return pd.concat({
+            f'{n}D': 16 * pnl.rolling(n).mean() / pnl.rolling(n).std()
+            for n in [int(252 * x) for x in periods]
+        } | {
+            'expanding': 16 * pnl.expanding(min_periods=504).mean() / pnl.expanding(min_periods=504).std()
+        }, axis=1).ffill()
+    
+    @staticmethod
+    def pnl_cum(pnl:pd.Series, risk:float = 1, is_aum_cum:bool = False) -> pd.Series:
+        pnl_scaled = (risk / 16) * pnl / pnl.std()
+        if is_aum_cum:
+            return (1 + ( pnl_scaled / 100 )).cumprod()
+        else:
+            return pnl_scaled.cumsum()
+    
+    @staticmethod
+    def drawdown(pnl:pd.Series, risk:float = 1, is_aum_cum:bool = False) -> pd.Series:
+        pnl_cum = Metrics.pnl_cum(pnl, risk, is_aum_cum)
+        if is_aum_cum:
+            return ( pnl_cum - pnl_cum.cummax() ) / pnl_cum.cummax()
+        else:
+            return ( pnl_cum - pnl_cum.cummax() )
         
     @staticmethod
     def backtest(
@@ -138,22 +176,14 @@ class Metrics:
             pos_change = pos.diff().abs()
 
         pos_abs, pnl, pos_change = Metrics._resample_daily(pos.abs(), pnl, pos_change)
-
-        instruments = pnl.columns.intersection(pos_abs.columns).intersection(pos_change.columns)
-        pos_abs, pnl, pos_change = pos_abs.loc[:, instruments], pnl.loc[:, instruments], pos_change.loc[:, instruments]
-
-        pnl_total = pnl.fillna(0).sum(1)  
-        pos_abs_total = pos_abs.ffill().fillna(0).sum(1)
-        pos_change_total = pos_change.fillna(0).sum(1)
-
+        pos_abs_total, pnl_total, pos_change_total = Metrics._get_total(pos_abs, pnl, pos_change)   
+        
         print(Metrics.metrics(pos_abs_total, pnl_total, pos_change_total).to_frame('overall').T)
 
-        pnl_scaled = (risk / 16) * pnl_total / pnl_total.std()
-        pnl_cum = (1 + ( pnl_scaled / 100 )).cumprod() if is_aum_cum else pnl_scaled.cumsum()
-        drawdown = ( pnl_cum - pnl_cum.cummax() ) / pnl_cum.cummax() if is_aum_cum else ( pnl_cum - pnl_cum.cummax() )
-
-        px.line(pnl_cum, title='Pnl cum', log_y= is_aum_cum).show()
-        px.line(drawdown, title='drawdown').show()
+        px.line(Metrics.pnl_cum(pnl_total, risk, is_aum_cum), title='Pnl cum', log_y= is_aum_cum).show()
+        px.line(Metrics.drawdown(pnl_total, risk, is_aum_cum), title='drawdown').show()
+        px.line(Metrics.rolling_sharpe(pnl_total), title='rolling sharpe').show()
+        Utilitaires.clustermap(pnl.corr().fillna(0)).show()
 
         if len(pnl.columns) < 30:
             Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl decomposed' ).show()
@@ -163,51 +193,12 @@ class Metrics:
     @staticmethod
     def quick_backtest(
         returns:pd.DataFrame, signal:pd.DataFrame, 
-        vol:pd.DataFrame = None, bid_ask_spread:pd.DataFrame = None, 
+        vol:pd.DataFrame = None, 
         risk:float = 1, is_aum_cum:bool = False, 
-        fee_per_transaction:float = 1e-4,
     ) -> pd.DataFrame:
-        
         pos = Core.compute_position(signal, vol) if vol is not None else signal
         pnl = Core.compute_pnl(pos, returns)
-        if bid_ask_spread is not None:
-            pnl -= Core.compute_cost(pos.diff().abs(), bid_ask_spread, fee_per_transaction)
         return Metrics.backtest(pnl=pnl, pos=pos, risk=risk, is_aum_cum=is_aum_cum)
-    
-    @staticmethod
-    def long_backtest(
-        pnl:pd.DataFrame, pos:pd.DataFrame = None, 
-        pos_change:pd.DataFrame = None, 
-        risk:float = 1, is_aum_cum:bool = False
-    ) -> pd.DataFrame:   
-        
-        metrics = Metrics.backtest(pnl, pos, pos_change, risk, is_aum_cum)
-
-        corr = pnl.corr().fillna(0)
-        # px.imshow(corr.where(corr != 1, np.nan)).show()
-
-        sns.clustermap(
-            data=corr,metric='euclidean',
-            vmin=-1, vmax=1,
-            cmap='RdBu', figsize=(8, 4), 
-            annot=True, fmt='.2f',
-        ).figure.show()
-
-        pnl_total = pnl.fillna(0).sum(1)
-        if hasattr(pnl.index, 'date'):
-            pnl_total = pnl_total.groupby(pnl_total.index.date).sum()
-
-        rolling_sharpe = pd.concat({
-            f'{n}D': 16 * pnl_total.rolling(n).mean() / pnl_total.rolling(n).std()
-            for n in [int(252 * x) for x in [1/2, 1, 2, 4, 8]]
-        } | {
-            'expanding': 16 * pnl_total.expanding(min_periods=504).mean() / pnl_total.expanding(min_periods=504).std()
-        }, axis=1)
-
-        Utilitaires.plotx( rolling_sharpe.ffill(), title='rolling sharpe' ).show()
-        Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl per asset' ).show()
-
-        return metrics
 
 
 
