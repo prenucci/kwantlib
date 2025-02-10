@@ -101,5 +101,30 @@ class Weighting:
                 raise ValueError(f"level should be in ['cross asset', 'per asset'] not {level}")
             
     @staticmethod
+    def get_seasonal_returns(
+        returns:pd.DataFrame, 
+        grouper:Literal['hour', 'dayofweek', 'month', 'dayofyear', 'quarter']='month'
+    )->pd.DataFrame:
+        grouper = getattr(returns.index, grouper)
+        mean_returns_over_period:pd.DataFrame = returns.groupby(grouper).expanding().sum()
+        mean_returns_over_period.index = mean_returns_over_period.index.droplevel(0)
+        mean_returns_over_period= mean_returns_over_period.sort_index(axis=0)
+        return mean_returns_over_period  
+    
+    @staticmethod
+    def get_seasonal_signal(
+        returns:pd.DataFrame, 
+        grouper:Literal['hour', 'dayofweek', 'month', 'dayofyear', 'quarter']='month',
+        threshold:float = 1
+    )->pd.DataFrame:
+        seasonal_returns = Weighting.get_seasonal_returns(returns, grouper)
+        seasonal_sharpe = seasonal_returns / seasonal_returns.expanding().std()
+        return (
+            seasonal_returns
+            .where(seasonal_sharpe.abs() > threshold, 0)
+            .apply(np.sign)
+        )
+    
+    @staticmethod
     def monkey_patch(): 
         pd.DataFrame.markovitz = Weighting.markovitz
