@@ -128,3 +128,5 @@ class Weighting:
     @staticmethod
     def monkey_patch(): 
         pd.DataFrame.markovitz = Weighting.markovitz
+        pd.DataFrame.get_seasonal_returns = Weighting.get_seasonal_returns
+        pd.DataFrame.get_seasonal_signal = Weighting.get_seasonal_signal
