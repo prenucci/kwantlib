@@ -1,7 +1,9 @@
 import pandas as pd 
 import plotly.express as px 
+import seaborn as sns
 import multiprocessing as mp 
 from typing import Callable, Any, Literal
+
 class Utilitaires:
 
     n_jobs = mp.cpu_count() - 2
@@ -55,6 +57,14 @@ class Utilitaires:
         if hasattr(df_.index, 'date'):
             df_ = df_.groupby(df_.index.date).sum()
         return Utilitaires.plotx(df_, title=title)    
+    
+    @staticmethod
+    def clustermap(corr:pd.DataFrame):
+        return sns.clustermap(
+            data=corr,metric='euclidean',
+            vmin=-1, vmax=1, cmap='coolwarm', 
+            figsize=(8, 4), annot=True, fmt='.2f',
+        ).figure
     
     @staticmethod
     def _custom_reindex_like_ds(ds:pd.Series | pd.DataFrame, like:pd.Series) -> pd.Series | pd.DataFrame:
