@@ -9,7 +9,10 @@ class Core:
     def compute_position(signal:pd.DataFrame, volatility:pd.DataFrame) -> pd.DataFrame:
         signal = Utilitaires.custom_reindex_like(signal, volatility)
         pos = signal.div(volatility, axis = 0, level = 0) 
-        pos = pos.where(Utilitaires.zscore(pos).abs() < 5, np.nan)
+        zscore_pos = pos.apply(
+            lambda x: (x.dropna() - x.dropna().expanding().mean()) / x.dropna().expanding().std() 
+        )
+        pos = pos.where(zscore_pos.abs() < 5, np.nan)
         return pos.ffill().fillna(0)
     
     @staticmethod

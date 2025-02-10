@@ -1,11 +1,42 @@
 import pandas as pd 
 import numpy  as np 
 import multiprocessing as mp 
-from typing import Iterable, Callable, Any, Tuple, Dict
+from typing import Iterable, Callable, Any, Tuple, Dict, Literal
 
 from .utilitaires import Utilitaires
 
 class Operator:
+
+    @staticmethod
+    def _zscore_ds(
+        ds:pd.Series, method:Literal['expanding', 'rolling', 'ewm'] = 'expanding', lookback:int = 252
+    ) -> pd.Series:
+        match method:
+            case 'expanding':
+                return (ds - ds.expanding().mean()) / ds.expanding().std()
+            case 'rolling':
+                return (ds - ds.rolling(lookback).mean()) / ds.rolling(lookback).std()
+            case 'ewm':
+                return (ds - ds.ewm(lookback).mean()) / ds.ewm(lookback).std()
+            case _:
+                raise ValueError(f"method should be in ['expanding', 'rolling', 'ewm'] not {method}")
+            
+    @staticmethod
+    def zscore(
+        df: pd.DataFrame | pd.Series, 
+        method: Literal['expanding', 'rolling', 'ewm'] = 'expanding', 
+        lookback: int = 252, skipna: bool = True
+    ) -> pd.DataFrame | pd.Series: 
+        
+        match type(df):
+            case pd.Series:
+                zscore = Operator._zscore_ds(df.dropna() if skipna else df, method, lookback)
+            case pd.DataFrame:
+                zscore = df.apply(lambda x: Operator._zscore_ds(x.dropna() if skipna else x, method, lookback))
+            case _:
+                raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")
+        
+        return zscore.reindex(df.index).ffill()
 
     @staticmethod
     def proj(signal:pd.DataFrame, threshold:float=0, level:int | Iterable[int] = 0) -> pd.DataFrame: 
@@ -143,6 +174,8 @@ class Operator:
     
     @staticmethod
     def monkey_patch(): 
+        pd.Series.zscore = Operator.zscore
+        pd.DataFrame.zscore = Operator.zscore
         pd.Series.cross_moving_average = Operator.cross_moving_average
         pd.DataFrame.cross_moving_average = Operator.cross_moving_average
         pd.DataFrame.proj = Operator.proj

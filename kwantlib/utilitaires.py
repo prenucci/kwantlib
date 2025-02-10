@@ -2,7 +2,7 @@ import pandas as pd
 import plotly.express as px 
 import seaborn as sns
 import multiprocessing as mp 
-from typing import Callable, Any, Literal
+from typing import Callable, Any
 
 class Utilitaires:
 
@@ -90,37 +90,7 @@ class Utilitaires:
                 return Utilitaires._custom_reindex_like_df(df, like)
             case _:
                 raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")
-            
-    @staticmethod
-    def _zscore_ds(
-        ds:pd.Series, method:Literal['expanding', 'rolling', 'ewm'] = 'expanding', lookback:int = 252
-    ) -> pd.Series:
-        match method:
-            case 'expanding':
-                return (ds - ds.expanding().mean()) / ds.expanding().std()
-            case 'rolling':
-                return (ds - ds.rolling(lookback).mean()) / ds.rolling(lookback).std()
-            case 'ewm':
-                return (ds - ds.ewm(lookback).mean()) / ds.ewm(lookback).std()
-            case _:
-                raise ValueError(f"method should be in ['expanding', 'rolling', 'ewm'] not {method}")
-            
-    @staticmethod
-    def zscore(
-        df: pd.DataFrame | pd.Series, 
-        method: Literal['expanding', 'rolling', 'ewm'] = 'expanding', 
-        lookback: int = 252, skipna: bool = True
-    ) -> pd.DataFrame | pd.Series: 
         
-        match type(df):
-            case pd.Series:
-                zscore = Utilitaires._zscore_ds(df.dropna() if skipna else df, method, lookback)
-            case pd.DataFrame:
-                zscore = df.apply(lambda x: Utilitaires._zscore_ds(x.dropna() if skipna else x, method, lookback))
-            case _:
-                raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")
-        
-        return zscore.reindex(df.index).ffill()
 
     @staticmethod
     def monkey_patch(): 
@@ -132,9 +102,6 @@ class Utilitaires:
 
         pd.DataFrame.permute_levels = Utilitaires.permute_levels
         pd.DataFrame.flatten_columns = Utilitaires.flatten_columns
-
-        pd.Series.zscore = Utilitaires.zscore
-        pd.DataFrame.zscore =  Utilitaires.zscore
 
         pd.DataFrame.plotx = Utilitaires.plotx
         pd.Series.plotx = Utilitaires.plotx
