@@ -188,7 +188,10 @@ class Metrics:
         if len(pnl.columns) < 30:
             Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl decomposed' ).show()
 
-        return Metrics.metrics(pos_abs, pnl, pos_change)
+        return pd.concat([
+            Metrics.metrics(pos_abs, pnl, pos_change),
+            pnl.corrwith(pnl_total).to_frame('corr_with_book')
+        ], axis=1)
     
     @staticmethod
     def quick_backtest(
