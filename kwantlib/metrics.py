@@ -95,8 +95,9 @@ class Metrics:
         pos_abs:pd.DataFrame | pd.Series, pnl:pd.DataFrame | pd.Series, pos_change:pd.DataFrame | pd.Series
     ) -> tuple[pd.DataFrame | pd.Series, pd.DataFrame | pd.Series, pd.DataFrame | pd.Series]:
         
-        instruments = pnl.columns.intersection(pos_abs.columns).intersection(pos_change.columns)
-        pos_abs, pnl, pos_change = pos_abs.loc[:, instruments], pnl.loc[:, instruments], pos_change.loc[:, instruments]
+        if isinstance(pnl, pd.DataFrame) and isinstance(pos_abs, pd.DataFrame) and isinstance(pos_change, pd.DataFrame):
+            instruments = pnl.columns.intersection(pos_abs.columns).intersection(pos_change.columns)
+            pos_abs, pnl, pos_change = pos_abs.loc[:, instruments], pnl.loc[:, instruments], pos_change.loc[:, instruments]
 
         # if hasattr(pos_abs.index, 'date'):
         #     pos_abs = pos_abs.ffill().groupby(pos_abs.index.date).mean()
