@@ -23,10 +23,6 @@ class Metrics:
         return 1e4 * pnl.mean() / pos_change.mean()
     
     @staticmethod
-    def mean_return(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
-        return 100 * 252 * pnl.mean() / pos.abs().mean()
-    
-    @staticmethod
     def maxdrawdown(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
         return (
             pnl.cumsum().cummax() - pnl.cumsum()
@@ -55,9 +51,12 @@ class Metrics:
         return pnl.where(pos_shifted > 0, 0).sum() / pnl.sum()
     
     @staticmethod
-    def std_without_leverage(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
-        return 100 * 16 * pnl.std() / pos.abs().mean()
+    def unlevered_mean_return(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
+        return 100 * 252 * pnl.mean() / pos.abs().mean()
     
+    @staticmethod
+    def unlevered_std(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
+        return 100 * 16 * pnl.std() / pos.abs().mean()
     
     ### Backtest ###
     
@@ -68,14 +67,14 @@ class Metrics:
             'raw_sharpe': Metrics.sharpe(pnl),
             'turnover': Metrics.turnover(pos, pos_change),
             'pnl_per_trade': Metrics.pnl_per_trade(pnl, pos_change),
-            'mean_return': Metrics.mean_return(pnl, pos),
             'maxdrawdown': Metrics.maxdrawdown(pnl),
             'calamar': Metrics.calamar(pnl),
             'sortino': Metrics.sortino(pnl),
             'ftrading': Metrics.ftrading(pos),
             'win_rate': Metrics.win_rate(pnl),
             'r_sharpe': Metrics.sharpe(pnl.fillna(0).rolling(252).mean()) / 16,
-            'std_without_leverage': Metrics.std_without_leverage(pnl, pos)
+            'unlevered_mean_return': Metrics.unlevered_mean_return(pnl, pos),
+            'unlevered_std': Metrics.unlevered_std(pnl, pos)
         })
     
     @staticmethod
