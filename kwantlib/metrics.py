@@ -94,12 +94,19 @@ class Metrics:
     def _resample_daily(
         pos_abs:pd.DataFrame | pd.Series, pnl:pd.DataFrame | pd.Series, pos_change:pd.DataFrame | pd.Series
     ) -> tuple[pd.DataFrame | pd.Series, pd.DataFrame | pd.Series, pd.DataFrame | pd.Series]:
-        if hasattr(pos_abs.index, 'date'):
-            pos_abs = pos_abs.groupby(pos_abs.index.date).mean()
-        if hasattr(pnl.index, 'date'):
-            pnl = pnl.groupby(pnl.index.date).sum()
-        if hasattr(pos_change.index, 'date'):
-            pos_change = pos_change.groupby(pos_change.index.date).sum()
+        
+        instruments = pnl.columns.intersection(pos_abs.columns).intersection(pos_change.columns)
+        pos_abs, pnl, pos_change = pos_abs.loc[:, instruments], pnl.loc[:, instruments], pos_change.loc[:, instruments]
+
+        # if hasattr(pos_abs.index, 'date'):
+        #     pos_abs = pos_abs.ffill().groupby(pos_abs.index.date).mean()
+        #     pnl = pnl.fillna(0).groupby(pnl.index.date).sum()
+        #     pos_change = pos_change.fillna(0).groupby(pos_change.index.date).sum()
+        
+        pos_abs = pos_abs.ffill().resample('1D').mean().ffill()
+        pnl = pnl.fillna(0).resample('1D').sum().fillna(0)
+        pos_change = pos_change.fillna(0).resample('1D').sum().fillna(0)
+
         return pos_abs, pnl, pos_change
         
     @staticmethod
@@ -116,26 +123,10 @@ class Metrics:
             case (pd.Series, pd.Series, pd.Series):
                 return Metrics._metrics_ds(pos_abs, pnl, pos_change)
             case (pd.DataFrame, pd.DataFrame, pd.DataFrame):
-                assert pos_abs.columns.equals(pnl.columns) and pos_abs.columns.equals(pos_change.columns), 'pos, pnl and pos_change must have the same columns'
                 return Metrics._metrics_df(pos_abs, pnl, pos_change)
             case _:
                 raise ValueError('pos, pnl and pos_change must be of the same type')
-    
-    @staticmethod
-    def _get_total(
-        pos:pd.DataFrame | pd.Series, pnl:pd.DataFrame | pd.Series, pos_change:pd.DataFrame | pd.Series
-    ) -> tuple[pd.Series, pd.Series, pd.Series]:
-        pos_abs, pnl, pos_change = Metrics._resample_daily(pos.abs(), pnl, pos_change)
-
-        instruments = pnl.columns.intersection(pos_abs.columns).intersection(pos_change.columns)
-        pos_abs, pnl, pos_change = pos_abs.loc[:, instruments], pnl.loc[:, instruments], pos_change.loc[:, instruments]
-
-        pnl_total = pnl.fillna(0).sum(1)  
-        pos_abs_total = pos_abs.ffill().fillna(0).sum(1)
-        pos_change_total = pos_change.fillna(0).sum(1)
-    
-        return pos_abs_total, pnl_total, pos_change_total
-    
+        
     @staticmethod
     def rolling_sharpe(pnl:pd.Series, periods:list[int] = [1/2, 1, 2, 4, 8]) -> pd.DataFrame:
         return pd.concat({
@@ -175,7 +166,7 @@ class Metrics:
             pos_change = pos.diff().abs()
 
         pos_abs, pnl, pos_change = Metrics._resample_daily(pos.abs(), pnl, pos_change)
-        pos_abs_total, pnl_total, pos_change_total = Metrics._get_total(pos_abs, pnl, pos_change)   
+        pos_abs_total, pnl_total, pos_change_total = pos_abs.sum(1), pnl.sum(1), pos_change.sum(1)
         
         print(Metrics.metrics(pos_abs_total, pnl_total, pos_change_total).to_frame('overall').T)
 
