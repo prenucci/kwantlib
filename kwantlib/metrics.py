@@ -95,18 +95,24 @@ class Metrics:
         pos_abs:pd.DataFrame | pd.Series, pnl:pd.DataFrame | pd.Series, pos_change:pd.DataFrame | pd.Series
     ) -> tuple[pd.DataFrame | pd.Series, pd.DataFrame | pd.Series, pd.DataFrame | pd.Series]:
         
-        if isinstance(pnl, pd.DataFrame) and isinstance(pos_abs, pd.DataFrame) and isinstance(pos_change, pd.DataFrame):
-            instruments = pnl.columns.intersection(pos_abs.columns).intersection(pos_change.columns)
-            pos_abs, pnl, pos_change = pos_abs.loc[:, instruments], pnl.loc[:, instruments], pos_change.loc[:, instruments]
-
-        # if hasattr(pos_abs.index, 'date'):
-        #     pos_abs = pos_abs.ffill().groupby(pos_abs.index.date).mean()
-        #     pnl = pnl.fillna(0).groupby(pnl.index.date).sum()
-        #     pos_change = pos_change.fillna(0).groupby(pos_change.index.date).sum()
+        match (type(pos_abs), type(pnl), type(pos_change)):
+            case (pd.Series, pd.Series, pd.Series):
+                pass
+            case (pd.DataFrame, pd.DataFrame, pd.DataFrame):
+                instruments = pnl.columns.intersection(pos_abs.columns).intersection(pos_change.columns)
+                pos_abs, pnl, pos_change = pos_abs.loc[:, instruments], pnl.loc[:, instruments], pos_change.loc[:, instruments]
+            case _:
+                raise ValueError('pos_abs, pnl and pos_change must be of the same type')
         
-        pos_abs = pos_abs.ffill().resample('1D').mean().ffill()
-        pnl = pnl.fillna(0).resample('1D').sum().fillna(0)
-        pos_change = pos_change.fillna(0).resample('1D').sum().fillna(0)
+        match (hasattr(pos_abs.index, 'date'), hasattr(pnl.index, 'date'), hasattr(pos_change.index, 'date')):
+            case (True, True, True):
+                pos_abs = pos_abs.ffill().groupby(pos_abs.index.date).mean()
+                pnl = pnl.fillna(0).groupby(pnl.index.date).sum()
+                pos_change = pos_change.fillna(0).groupby(pos_change.index.date).sum()
+            case (False, False, False):
+                pass
+            case _:
+                raise ValueError('pos_abs, pnl and pos_change must be either all daily or all intraday')
 
         return pos_abs, pnl, pos_change
         
