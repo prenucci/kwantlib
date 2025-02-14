@@ -180,7 +180,9 @@ class Metrics:
         px.line(Metrics.pnl_cum(pnl_total, risk, is_aum_cum), title='Pnl cum', log_y= is_aum_cum).show()
         px.line(Metrics.drawdown(pnl_total, risk, is_aum_cum), title='drawdown').show()
         px.line(Metrics.rolling_sharpe(pnl_total), title='rolling sharpe').show()
-        Utilitaires.clustermap(pnl.corr().fillna(0)).show()
+
+        if len(pnl.columns) > 1:
+            Utilitaires.clustermap(pnl.corr().fillna(0)).show()
 
         if len(pnl.columns) < 30:
             Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl decomposed' ).show()
