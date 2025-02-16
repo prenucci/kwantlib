@@ -67,14 +67,14 @@ class Metrics:
             'raw_sharpe': Metrics.sharpe(pnl),
             'turnover (%)': Metrics.turnover(pos, pos_change),
             'pnl_per_trade (bps)': Metrics.pnl_per_trade(pnl, pos_change),
-            'maxdrawdown (yearly std)': Metrics.maxdrawdown(pnl),
+            'maxdrawdown (ystd)': Metrics.maxdrawdown(pnl),
             'calamar': Metrics.calamar(pnl),
             'sortino': Metrics.sortino(pnl),
             'ftrading (%)': Metrics.ftrading(pos),
             'win_rate (%)': Metrics.win_rate(pnl),
             'r_sharpe': Metrics.sharpe(pnl.fillna(0).rolling(252).mean()) / 16,
-            'unlevered_yearly_return (%)': Metrics.unlevered_mean_return(pnl, pos),
-            'unlevered_yearly_std (%)': Metrics.unlevered_std(pnl, pos)
+            'unlevered_mean_return (y%)': Metrics.unlevered_mean_return(pnl, pos),
+            'unlevered_std (y%)': Metrics.unlevered_std(pnl, pos)
         })
     
     @staticmethod
