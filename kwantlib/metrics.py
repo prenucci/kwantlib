@@ -26,7 +26,7 @@ class Metrics:
     def maxdrawdown(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
         return (
             pnl.cumsum().cummax() - pnl.cumsum()
-        ).max() / pnl.std() 
+        ).max() / ( pnl.std() * 16 )
     
     @staticmethod
     def calamar(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
@@ -65,16 +65,16 @@ class Metrics:
         return pd.Series({
             'eff_sharpe': Metrics.sharpe(pnl[pnl!=0]),
             'raw_sharpe': Metrics.sharpe(pnl),
-            'turnover': Metrics.turnover(pos, pos_change),
-            'pnl_per_trade': Metrics.pnl_per_trade(pnl, pos_change),
-            'maxdrawdown': Metrics.maxdrawdown(pnl),
+            'turnover (%)': Metrics.turnover(pos, pos_change),
+            'pnl_per_trade (bps)': Metrics.pnl_per_trade(pnl, pos_change),
+            'maxdrawdown (yearly std)': Metrics.maxdrawdown(pnl),
             'calamar': Metrics.calamar(pnl),
             'sortino': Metrics.sortino(pnl),
-            'ftrading': Metrics.ftrading(pos),
-            'win_rate': Metrics.win_rate(pnl),
+            'ftrading (%)': Metrics.ftrading(pos),
+            'win_rate (%)': Metrics.win_rate(pnl),
             'r_sharpe': Metrics.sharpe(pnl.fillna(0).rolling(252).mean()) / 16,
-            'unlevered_mean_return': Metrics.unlevered_mean_return(pnl, pos),
-            'unlevered_std': Metrics.unlevered_std(pnl, pos)
+            'unlevered_yearly_return (%)': Metrics.unlevered_mean_return(pnl, pos),
+            'unlevered_yearly_std (%)': Metrics.unlevered_std(pnl, pos)
         })
     
     @staticmethod
