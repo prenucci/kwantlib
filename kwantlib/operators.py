@@ -122,7 +122,7 @@ class Operator:
 
         """
         Compute the cross moving average of the signal df for different smooth and lookback parameters. 
-        Augments the dimensionality of the signal df by two levels . 
+        Augments the dimensionality of the signal df by two levels if is_proj = False, keep the same dimensionality if is_proj = True. 
         """
 
         match type(signal):
