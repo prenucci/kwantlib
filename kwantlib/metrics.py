@@ -30,7 +30,7 @@ class Metrics:
     
     @staticmethod
     def calamar(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
-        return 16 * Metrics.sharpe(pnl) / Metrics.maxdrawdown(pnl)
+        return Metrics.sharpe(pnl) / Metrics.maxdrawdown(pnl)
     
     @staticmethod
     def sortino(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
