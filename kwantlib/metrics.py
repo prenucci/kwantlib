@@ -145,7 +145,7 @@ class Metrics:
     
     @staticmethod
     def pnl_cum(pnl:pd.Series, risk:float = 1, is_aum_cum:bool = False) -> pd.Series:
-        pnl_scaled = (risk / 16) * pnl / pnl.std()
+        pnl_scaled = (risk / 16) * ( pnl / pnl.std() )
         if is_aum_cum:
             return (1 + ( pnl_scaled / 100 )).cumprod()
         else:
@@ -161,7 +161,8 @@ class Metrics:
         
     @staticmethod
     def backtest(
-        pnl:pd.DataFrame, pos:pd.DataFrame = None, 
+        pnl:pd.DataFrame, 
+        pos:pd.DataFrame = None, 
         pos_change:pd.DataFrame = None, 
         risk:float = 1, is_aum_cum:bool = False
     ) -> pd.DataFrame:   
