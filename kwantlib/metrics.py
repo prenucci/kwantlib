@@ -26,7 +26,7 @@ class Metrics:
     def maxdrawdown(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
         return (
             pnl.cumsum().cummax() - pnl.cumsum()
-        ).max() / pnl.std()
+        ).max() / pnl.std() 
     
     @staticmethod
     def calamar(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
