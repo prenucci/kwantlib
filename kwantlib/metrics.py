@@ -42,7 +42,7 @@ class Metrics:
     
     @staticmethod
     def loss_std_ratio(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
-        return pnl[pnl < 0].std() / pnl.std()
+        return pnl[pnl < 0].std() / pnl[pnl != 0].std()
     
     @staticmethod
     def win_rate(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
@@ -81,8 +81,8 @@ class Metrics:
             'loss_std_ratio (%)': 100 * Metrics.loss_std_ratio(pnl),
             'win_rate (%)': 100 * Metrics.win_rate(pnl),
 
-            'unlev._return (y%)': 100 * 252 * Metrics.unlevered_mean_return(pnl, pos),
-            'unlev._std (y%)': 100 * 16 * Metrics.unlevered_std(pnl, pos),
+            'unlev_return (y%)': 100 * 252 * Metrics.unlevered_mean_return(pnl, pos),
+            'unlev_std (y%)': 100 * 16 * Metrics.unlevered_std(pnl, pos),
 
             'r_sharpe': Metrics.sharpe(pnl.fillna(0).rolling(252).mean()) / 16,
         })
