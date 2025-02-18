@@ -195,7 +195,7 @@ class Metrics:
         if len(pnl.columns) > 1:
             Utilitaires.clustermap(pnl.corr().fillna(0)).show()
 
-        if len(pnl.columns) < 30:
+        if len(pnl.columns) < 40:
             Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl decomposed' ).show()
 
         return pd.concat([
