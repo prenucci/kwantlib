@@ -33,16 +33,20 @@ class Metrics:
         return Metrics.sharpe(pnl) / Metrics.maxdrawdown(pnl)
     
     @staticmethod
-    def sortino(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
-        return 16 * pnl.mean() / pnl[pnl < 0].std()
-    
-    @staticmethod
     def ftrading(pos:pd.DataFrame | pd.Series) -> pd.Series | float:
         return (pos.abs() != 0).mean()
     
     @staticmethod
+    def sortino(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
+        return 16 * pnl.mean() / pnl[pnl < 0].std()
+    
+    @staticmethod
+    def loss_std_ratio(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
+        return 100 * pnl[pnl < 0].std() / pnl.std()
+    
+    @staticmethod
     def win_rate(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
-        return (pnl > 0).sum() / ( (pnl != 0).sum() )
+        return 100 * (pnl > 0).sum() / (pnl != 0).sum() 
     
     @staticmethod
     def long_ratio(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
@@ -67,14 +71,20 @@ class Metrics:
             'raw_sharpe': Metrics.sharpe(pnl),
             'turnover (%)': Metrics.turnover(pos, pos_change),
             'pnl_per_trade (bps)': Metrics.pnl_per_trade(pnl, pos_change),
+
             'maxdrawdown (ystd)': Metrics.maxdrawdown(pnl),
             'calamar': Metrics.calamar(pnl),
-            'sortino': Metrics.sortino(pnl),
+            
             'ftrading (%)': Metrics.ftrading(pos),
+
+            'sortino': Metrics.sortino(pnl),
+            'loss_std_ratio (%)': Metrics.loss_std_ratio(pnl),
             'win_rate (%)': Metrics.win_rate(pnl),
-            'r_sharpe': Metrics.sharpe(pnl.fillna(0).rolling(252).mean()) / 16,
+
             'unlevered_mean_return (y%)': Metrics.unlevered_mean_return(pnl, pos),
-            'unlevered_std (y%)': Metrics.unlevered_std(pnl, pos)
+            'unlevered_std (y%)': Metrics.unlevered_std(pnl, pos),
+
+            'r_sharpe': Metrics.sharpe(pnl.fillna(0).rolling(252).mean()) / 16,
         })
     
     @staticmethod
