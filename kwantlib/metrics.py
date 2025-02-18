@@ -209,7 +209,11 @@ class Metrics:
         vol:pd.DataFrame = None, 
         risk:float = 1, is_aum_cum:bool = False, 
     ) -> pd.DataFrame:
-        pos = Core.compute_position(signal, vol) if vol is not None else signal
+        pos = (
+            Core.compute_position(signal, vol) 
+            if vol is not None else 
+            Utilitaires.custom_reindex_like(signal, returns)
+        )
         pnl = Core.compute_pnl(pos, returns)
         return Metrics.backtest(pnl=pnl, pos=pos, risk=risk, is_aum_cum=is_aum_cum)
 
