@@ -150,7 +150,7 @@ class Metrics:
             f'{n}D': 16 * pnl.rolling(n).mean() / pnl.rolling(n).std()
             for n in [int(252 * x) for x in periods]
         } | {
-            'expanding': 16 * pnl.expanding(min_periods=504).mean() / pnl.expanding(min_periods=504).std(),
+            'expanding': 16 * pnl.expanding(min_periods=1008).mean() / pnl.expanding(min_periods=1008).std(),
             'overall': pd.Series(16 * pnl.mean() / pnl.std(), index=pnl.index), 
         }, axis=1).ffill()
     
