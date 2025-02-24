@@ -27,6 +27,12 @@ class Metrics:
         return (
             pnl.cumsum().cummax() - pnl.cumsum()
         ).max() / ( pnl.std() * 16 )
+
+    @staticmethod
+    def max_drawdown_length(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
+        return ( 
+            pnl.cumsum().cummax() > pnl.cumsum() 
+        ).astype(int).cumsum().max()
     
     @staticmethod
     def calamar(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
@@ -61,7 +67,7 @@ class Metrics:
     @staticmethod
     def unlevered_std(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
         return pnl.std() / pos.abs().mean()
-    
+
     ### Backtest ###
     
     @staticmethod
@@ -73,6 +79,7 @@ class Metrics:
             'pnl_per_trade (bps)': 1e4 * Metrics.pnl_per_trade(pnl, pos_change),
 
             'maxdrawdown (ystd)': Metrics.maxdrawdown(pnl),
+            'maxdrawdown_length (days)': Metrics.max_drawdown_length(pnl),
             'calamar': Metrics.calamar(pnl),
             
             'ftrading (%)': 100 * Metrics.ftrading(pos),
