@@ -200,7 +200,8 @@ class Metrics:
         px.line(Metrics.rolling_sharpe(pnl_total), title='rolling sharpe').show()
 
         if len(pnl.columns) > 1:
-            Utilitaires.clustermap(pnl.corr().fillna(0)).show()
+            px.imshow(pnl.corr().fillna(0)).show()
+            # Utilitaires.clustermap(pnl.corr().fillna(0)).show()
 
         if len(pnl.columns) < 40:
             Utilitaires.plotx( risk * pnl.cumsum() / pnl.std(), title='pnl decomposed' ).show()
