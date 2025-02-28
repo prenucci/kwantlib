@@ -79,7 +79,6 @@ class Metrics:
             'pnl_per_trade (bps)': 1e4 * Metrics.pnl_per_trade(pnl, pos_change),
 
             'maxdrawdown (ystd)': Metrics.maxdrawdown(pnl),
-            'maxdrawdown_length (days)': Metrics.max_drawdown_length(pnl),
             'calamar': Metrics.calamar(pnl),
             
             'ftrading (%)': 100 * Metrics.ftrading(pos),
