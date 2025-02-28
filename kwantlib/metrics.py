@@ -152,7 +152,7 @@ class Metrics:
                 raise ValueError('pos, pnl and pos_change must be of the same type')
         
     @staticmethod
-    def rolling_sharpe(pnl:pd.Series, periods:list[int] = [1/2, 1, 2, 4, 8]) -> pd.DataFrame:
+    def rolling_sharpe(pnl:pd.Series, periods:list[int] = [1/2, 1, 2, 4, 8, 10, 15]) -> pd.DataFrame:
         return pd.concat({
             f'{n}D': 16 * pnl.rolling(n).mean() / pnl.rolling(n).std()
             for n in [int(252 * x) for x in periods]
