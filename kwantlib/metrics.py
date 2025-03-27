@@ -93,9 +93,13 @@ def _metrics_df(pos:pd.DataFrame, pnl:pd.DataFrame, pos_change:pd.DataFrame) -> 
         col:result_col for col, result_col in zip(pos.columns, results)
     }, axis=1).T.sort_values(by='eff_sharpe', ascending=False)
 
-def _resample_daily(
+def resample_daily(
     pnl:pd.DataFrame | pd.Series, pos_abs:pd.DataFrame | pd.Series, pos_change:pd.DataFrame | pd.Series
 ) -> tuple[pd.DataFrame | pd.Series, pd.DataFrame | pd.Series, pd.DataFrame | pd.Series]:
+    
+    """
+    Resample the pnl, pos_abs and pos_change to daily when intraday. 
+    """
     
     match (type(pos_abs), type(pnl), type(pos_change)):
         case (pd.Series, pd.Series, pd.Series):
@@ -127,7 +131,7 @@ def metrics(
     if pos_change is None:
         pos_change = pos.diff().abs() 
 
-    pos_abs, pnl, pos_change = _resample_daily(pos.abs(), pnl, pos_change)
+    pos_abs, pnl, pos_change = resample_daily(pos.abs(), pnl, pos_change)
 
     match (type(pos_abs), type(pnl), type(pos_change)):
         case (pd.Series, pd.Series, pd.Series):
@@ -180,7 +184,7 @@ def backtest(
     if pos_change is None:
         pos_change = pos.diff().abs()
 
-    pos_abs, pnl, pos_change = _resample_daily(pos.abs(), pnl, pos_change)
+    pos_abs, pnl, pos_change = resample_daily(pos.abs(), pnl, pos_change)
     pos_abs_total, pnl_total, pos_change_total = pos_abs.sum(1), pnl.sum(1), pos_change.sum(1)
     
     print(metrics(pos_abs_total, pnl_total, pos_change_total).to_frame('overall').T)

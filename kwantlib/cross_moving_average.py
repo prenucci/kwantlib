@@ -10,15 +10,17 @@ def _cross_moving_average_ds(
         is_proj:bool, is_ewm:bool,
     ) -> pd.DataFrame:
 
+    signal_ = signal.dropna()
+
     window_params = set(x for x in smooth_params + lookback_params)
 
     mov_avg = {
-        window: signal.ewm(halflife=window).mean() if is_ewm else signal.rolling(window).mean()
+        window: signal_.ewm(halflife=window).mean() if is_ewm else signal_.rolling(window).mean()
         for window in window_params
     }
 
     mov_std = {
-        window: signal.ewm(halflife=window).std() if is_ewm else signal.rolling(window).std()
+        window: signal_.ewm(halflife=window).std() if is_ewm else signal_.rolling(window).std()
         for window in lookback_params
     }
 
@@ -63,8 +65,15 @@ def cross_moving_average(
     ) -> pd.DataFrame: 
 
     """
-    Compute the cross moving average of the signal df for different smooth and lookback parameters. 
-    The functions is multiprocessed by columns.
+    Compute the cross moving average of the signal df for different smooth and lookback parameters. (Multiprocessed by columns)
+
+    cma(smooth, lookback) = (mov_avg.(smooth) - mov_avg(lookback)) / mov_std(lookback)
+
+    - is_proj is a boolean that indicates if the output signal should be averaged to keep the same dimension as the input signal.
+    if is_proj is True, the output signal is the average of the cross moving average for all parameters. 
+    if is_proj is False, the output signal is a MultiIndex dataframe adding 2 new levels for smooth and lookback.
+
+    - is_ewm is a boolean that indicates if the moving average and std should be computed using an exponential moving average.
     """
 
     match type(signal):
@@ -89,38 +98,36 @@ def zscore(signal:pd.DataFrame | pd.Series, lookback:int = 1008, is_ewm:bool = F
         is_proj = True, is_ewm = is_ewm
     )
 
-def _clip_via_zscore_ds(ds:pd.Series, bound:float, lookback:int, is_ewm:bool) -> pd.Series:
+def _clip_via_zscore_ds(signal:pd.Series, bound:float, lookback:int, is_ewm:bool) -> pd.Series:
 
-    ds_ = ds.replace([np.inf, -np.inf], np.nan).dropna()
+    signal_ = signal.dropna()
 
-    grouper = ds_.ewm(lookback) if is_ewm else ds_.rolling(lookback)
+    grouper = signal_.ewm(lookback) if is_ewm else signal_.rolling(lookback)
     upper_bound = grouper.mean() + bound * grouper.std()
     lower_bound = grouper.mean() - bound * grouper.std()    
 
     return (
-        ds_
-        .mask(ds_ > upper_bound, upper_bound)
-        .mask(ds_ < lower_bound, lower_bound)
+        signal_
+        .mask(signal_ > upper_bound, upper_bound)
+        .mask(signal_ < lower_bound, lower_bound)
         .ffill().fillna(0)
     )
 
-def _clip_via_zscore_df(df:pd.DataFrame, bound:float, lookback:int, is_ewm:bool) -> pd.DataFrame:
-    """
-    Clip the signal for every column of the dataframe.
-    """
+def _clip_via_zscore_df(signal:pd.DataFrame, bound:float, lookback:int, is_ewm:bool) -> pd.DataFrame:
     return pd.concat({
-        col: _clip_via_zscore_ds(df.loc[:, col], bound, lookback, is_ewm) for col in df.columns
+        col: _clip_via_zscore_ds(signal.loc[:, col], bound, lookback, is_ewm) 
+        for col in signal.columns
     }, axis = 1)
 
-def clip_via_zscore(df:pd.DataFrame | pd.Series, bound:float = 5, lookback:int = 1008, is_ewm:bool = True) -> pd.DataFrame | pd.Series:
+def clip_via_zscore(signal:pd.DataFrame | pd.Series, bound:float = 5, lookback:int = 1008, is_ewm:bool = True) -> pd.DataFrame | pd.Series:
     """
     Clip the signal when its zscore is greater than the bound. Clip at the bound value. 
     """
 
-    match type(df):
+    match type(signal):
         case pd.Series:
-            return _clip_via_zscore_ds(df, bound, lookback, is_ewm)
+            return _clip_via_zscore_ds(signal, bound, lookback, is_ewm)
         case pd.DataFrame:
-            return _clip_via_zscore_df(df, bound, lookback, is_ewm)
+            return _clip_via_zscore_df(signal, bound, lookback, is_ewm)
         case _:
-            raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(df)}")
+            raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(signal)}")
