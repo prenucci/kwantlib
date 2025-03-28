@@ -1,7 +1,7 @@
 import pandas as pd
-from .cross_moving_average import cross_moving_average, zscore, clip_via_zscore
-from .compute_pnl import shift_ignoring_nan, shift_with_sample
-from .metrics import plotx
+from .cma_tools import cross_moving_average, zscore, clip_via_zscore
+from .pnl_tools import shift_ignoring_nan, shift_with_sample
+from .metrics_tools import plotx
 
 def monkeypatch():
     pd.Series.shift_ignoring_nan = shift_ignoring_nan

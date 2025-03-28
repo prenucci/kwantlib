@@ -1,7 +1,7 @@
 import pandas as pd 
 import multiprocessing as mp 
 import plotly.express as px
-from .compute_pnl import align_pos_with_returns, compute_pnl
+from .pnl_tools import align_pos_with_returns, compute_pnl
 
 ### Plot with plotly ###
 
