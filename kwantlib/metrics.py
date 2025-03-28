@@ -66,8 +66,8 @@ def unlevered_std(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) ->
 
 def _metrics_ds(pos:pd.Series, pnl:pd.Series, pos_change:pd.Series) -> pd.Series:
     return pd.Series({
-        'eff_sharpe (ystd)': sharpe(pnl[pnl!=0]),
-        'raw_sharpe (ystd)': sharpe(pnl),
+        'eff_sharpe': sharpe(pnl[pnl!=0]),
+        'raw_sharpe': sharpe(pnl),
         'turnover (%)': 100 * turnover(pos, pos_change),
         'pnl_per_trade (bps)': 1e4 * pnl_per_trade(pnl, pos_change),
         'unlev_return (y%)': 100 * 252 * unlevered_mean_return(pnl, pos),
