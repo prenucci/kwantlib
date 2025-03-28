@@ -1,7 +1,6 @@
 import pandas as pd 
 import numpy as np
 import multiprocessing as mp
-from typing import Tuple
 
 ### Resampling ###
 
@@ -50,6 +49,7 @@ def _align_pos_with_returns_df(position:pd.DataFrame, returns:pd.DataFrame) -> p
     return pd.concat(
         _align_pos_with_returns_ds(position.loc[:, [col]], returns.loc[:, col].dropna())
         for col in returns.columns
+        if col in position.columns.get_level_values(0)
     ).ffill().fillna(0)
 
 def align_pos_with_returns(position:pd.DataFrame | pd.Series, returns:pd.DataFrame | pd.Series) -> pd.DataFrame | pd.Series:
@@ -71,7 +71,7 @@ def align_pos_with_returns(position:pd.DataFrame | pd.Series, returns:pd.DataFra
 
     match (type(position), type(returns)):
         case (pd.DataFrame | pd.Series, pd.Series):
-            return _align_pos_with_returns_ds(position, returns.dropna())
+            return _align_pos_with_returns_ds(position, returns)
         case (pd.DataFrame, pd.DataFrame):
             return _align_pos_with_returns_df(position, returns)
         case _:
@@ -81,13 +81,18 @@ def align_pos_with_returns(position:pd.DataFrame | pd.Series, returns:pd.DataFra
 
 def _compute_pnl_ds(position:pd.DataFrame | pd.Series, returns:pd.Series) -> pd.DataFrame | pd.Series:
     returns_ = returns.dropna()
-    pos = _align_pos_with_returns_ds(position, returns_)
-    pnl = pos.shift(1).mul(returns_, axis=0)
+    pos_shifted = _align_pos_with_returns_ds(position.shift(1), returns_)
+    pnl = pos_shifted.mul(returns_, axis=0)
+    assert not pnl.isna().any().any(), 'NaN in your pnl'
     assert not pnl.apply(np.isinf).any().any(), 'inf in your pnl'
     return pnl
 
 def _compute_pnl_df(position:pd.DataFrame, returns:pd.DataFrame) -> pd.DataFrame:
-    tasks = ( ( position.loc[:, [col]], returns.loc[:, col].dropna() ) for col in returns.columns )
+    tasks = ( 
+        ( position.loc[:, [col]], returns.loc[:, col].dropna() ) 
+        for col in returns.columns 
+        if col in position.columns.get_level_values(0)
+    )
     with mp.Pool(mp.cpu_count() - 2) as pool:
         results = pool.starmap(_compute_pnl_ds, tasks)
     pnl = pd.concat(results, axis = 1)
@@ -97,17 +102,16 @@ def compute_pnl(position:pd.DataFrame | pd.Series, returns:pd.DataFrame | pd.Ser
     """
     Compute the pnl from a position and a returns. Position is re-aligned with the returns before computation.
     """
+    if missing_position := [col for col in returns.columns if col not in position.columns.get_level_values(0)]:
+        print(f'missing position: {missing_position}')
+    if missing_returns := [col for col in position.columns.get_level_values(0) if col not in returns.columns]:
+        print(f'missing returns: {missing_returns}')
+
     match (type(position), type(returns)):
         case (pd.Series, pd.Series):
-            return _compute_pnl_ds(position, returns.dropna())
+            pnl = _compute_pnl_ds(position, returns)
         case (pd.DataFrame, pd.DataFrame | pd.Series):
-            return _compute_pnl_df(position, returns)
+            pnl = _compute_pnl_df(position, returns)
         case _:
             raise ValueError('returns must be a pd.DataFrame or pd.Series')
-        
-def make_strat(
-        signal:pd.DataFrame | pd.Series, returns:pd.DataFrame | pd.Series
-    ) -> Tuple[pd.DataFrame | pd.Series, pd.DataFrame | pd.Series]:
-        position = align_pos_with_returns(signal, returns)
-        pnl = compute_pnl(position, returns).fillna(0)
-        return position.ffill(), pnl.fillna(0)
+    return pnl.fillna(0)
