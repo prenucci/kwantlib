@@ -36,15 +36,11 @@ def shift_ignoring_nan(
 ### Align Position with Returns ###
 
 def _align_pos_with_returns_ds(position:pd.DataFrame | pd.Series, returns:pd.Series) -> pd.DataFrame | pd.Series:
+
     returns_ = returns.dropna()
-    position_ = (
-        position
-        [~position.index.duplicated(keep='first')]
-        .sort_index(axis=0)
-    )
 
     return (
-        position_
+        position
         .replace([np.inf, -np.inf], np.nan).ffill()
         .reindex(returns_.index, method='ffill', axis=0).ffill()
         .fillna(0)
