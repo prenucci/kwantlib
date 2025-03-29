@@ -102,6 +102,7 @@ def compute_pnl(position:pd.DataFrame | pd.Series, returns:pd.DataFrame | pd.Ser
     """
     Compute the pnl from a position and a returns. Position is re-aligned with the returns before computation.
     """
+    
     if missing_position := [col for col in returns.columns if col not in position.columns.get_level_values(0)]:
         print(f'missing position: {missing_position}')
     if missing_returns := [col for col in position.columns.get_level_values(0) if col not in returns.columns]:
