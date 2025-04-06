@@ -1,7 +1,7 @@
 import pandas as pd
-from .cma_tools import cross_moving_average, zscore, clip_via_zscore
-from .pnl_tools import shift_ignoring_nan, shift_with_sample
-from .metrics_tools import plotx
+from .zscore_tools import cross_moving_average, zscore, clip_via_zscore
+from .resampling import shift_ignoring_nan, shift_with_sample, resample_daily
+from .backtesting import plotx, flatten_index
 
 def monkeypatch():
     pd.Series.shift_ignoring_nan = shift_ignoring_nan
@@ -21,5 +21,10 @@ def monkeypatch():
 
     pd.Series.plotx = plotx
     pd.DataFrame.plotx = plotx
+
+    pd.DataFrame.flatten_index = flatten_index
+
+    pd.Series.resample_daily = resample_daily
+    pd.DataFrame.resample_daily = resample_daily
 
 

@@ -13,7 +13,7 @@ def _cross_moving_average_ds(
     signal_ = signal.dropna()
 
     window_params = set(x for x in smooth_params + lookback_params)
-
+    
     mov_avg = {
         window: signal_.ewm(halflife=window).mean() if is_ewm else signal_.rolling(window).mean()
         for window in window_params
@@ -67,7 +67,7 @@ def cross_moving_average(
     """
     Compute the cross moving average of the signal df for different smooth and lookback parameters. (Multiprocessed by columns)
 
-    cma(smooth, lookback) = (mov_avg.(smooth) - mov_avg(lookback)) / mov_std(lookback)
+    cma(smooth, lookback) = (mov_avg(smooth) - mov_avg(lookback)) / mov_std(lookback)
 
     - is_proj is a boolean that indicates if the output signal should be averaged to keep the same dimension as the input signal.
     if is_proj is True, the output signal is the average of the cross moving average for all parameters. 
@@ -88,7 +88,9 @@ def cross_moving_average(
         case _:
             raise ValueError(f"signal should be a pd.Series or pd.DataFrame not {type(signal)}")
         
-def zscore(signal:pd.DataFrame | pd.Series, lookback:int = 1008, is_ewm:bool = False) -> pd.DataFrame | pd.Series:
+def zscore(
+        signal:pd.DataFrame | pd.Series, lookback:int = 1008, is_ewm:bool = False
+    ) -> pd.DataFrame | pd.Series:
     """
     Compute the zscore of the signal.
     """
@@ -98,7 +100,9 @@ def zscore(signal:pd.DataFrame | pd.Series, lookback:int = 1008, is_ewm:bool = F
         is_proj = True, is_ewm = is_ewm
     )
 
-def _clip_via_zscore_ds(signal:pd.Series, bound:float, lookback:int, is_ewm:bool) -> pd.Series:
+def _clip_via_zscore_ds(
+        signal:pd.Series, bound:float, lookback:int, clip_inbound:bool, is_ewm:bool
+    ) -> pd.Series:
 
     signal_ = signal.dropna()
 
@@ -111,23 +115,38 @@ def _clip_via_zscore_ds(signal:pd.Series, bound:float, lookback:int, is_ewm:bool
         .mask(signal_ > upper_bound, upper_bound)
         .mask(signal_ < lower_bound, lower_bound)
         .ffill().fillna(0)
+    ) if not clip_inbound else (
+        signal_
+        .where((signal_ > upper_bound) | (signal_ < lower_bound), 0)
+        .ffill().fillna(0)
     )
 
-def _clip_via_zscore_df(signal:pd.DataFrame, bound:float, lookback:int, is_ewm:bool) -> pd.DataFrame:
+def _clip_via_zscore_df(
+        signal:pd.DataFrame, bound:float, lookback:int, clip_inbound:bool, is_ewm:bool
+    ) -> pd.DataFrame:
+
     return pd.concat({
-        col: _clip_via_zscore_ds(signal.loc[:, col], bound, lookback, is_ewm) 
+        col: _clip_via_zscore_ds(
+            signal=signal.loc[:, col], bound=bound, lookback=lookback, clip_inbound=clip_inbound, is_ewm=is_ewm
+        ) 
         for col in signal.columns
     }, axis = 1)
 
-def clip_via_zscore(signal:pd.DataFrame | pd.Series, bound:float = 5, lookback:int = 1008, is_ewm:bool = True) -> pd.DataFrame | pd.Series:
+def clip_via_zscore(
+        signal:pd.DataFrame | pd.Series, 
+        bound:float = 5, lookback:int = 1008, 
+        clip_inbound:bool=False, is_ewm:bool = True
+    ) -> pd.DataFrame | pd.Series:
     """
-    Clip the signal when its zscore is greater than the bound. Clip at the bound value. 
+    Clip the signal depending on its zscore.
+    Clip outbound at the bound value when the signal is greater than the bound and clip_inbound=False (Default)
+    Clip inbound at 0 when the signal is lesser than the bound and clip_inbound=True
     """
 
     match type(signal):
         case pd.Series:
-            return _clip_via_zscore_ds(signal, bound, lookback, is_ewm)
+            return _clip_via_zscore_ds(signal=signal, bound=bound, lookback=lookback, clip_inbound=clip_inbound, is_ewm=is_ewm)
         case pd.DataFrame:
-            return _clip_via_zscore_df(signal, bound, lookback, is_ewm)
+            return _clip_via_zscore_df(signal=signal, bound=bound, lookback=lookback, clip_inbound=clip_inbound, is_ewm=is_ewm)
         case _:
             raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(signal)}")
