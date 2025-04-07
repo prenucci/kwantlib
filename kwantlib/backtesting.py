@@ -96,10 +96,10 @@ def backtest(
 
 
     gross_exposure = pos_abs_total / (16 * pnl_total.std())
-    rolling_25_days_risk = 16 * pnl_total.rolling(25).std()
+    rolling_25_days_risk = 16 * pnl_total.rolling(25).std() / pnl_total.std()
 
     two_plotx_same_scale(
-        gross_exposure, rolling_25_days_risk, title1='gross exposure', title2='rolling 25 days risk'
+        gross_exposure, rolling_25_days_risk, title1='gross exposure (std)', title2='rolling 25 days risk (std)'
     ).show()
 
     if len(pnl.columns) > 1:
