@@ -66,7 +66,7 @@ def _drawdown(pnl:pd.Series, risk:float = 1, is_aum_cum:bool = False) -> pd.Seri
 def backtest(
     pnl:pd.DataFrame, 
     pos:pd.DataFrame = None, 
-    pos_change:pd.DataFrame = None, 
+    flow:pd.DataFrame = None, 
     risk:float = 1, is_aum_cum:bool = False
 ) -> pd.DataFrame:   
         
@@ -79,15 +79,15 @@ def backtest(
         # Case when no position is provided, just compute pnl related metrics.
         pos = pd.DataFrame(1, index=pnl.index, columns=pnl.columns)
     
-    if pos_change is None:
-        pos_change = pos.ffill().fillna(0).diff().abs()
+    if flow is None:
+        flow = pos.ffill().fillna(0).diff().abs()
 
-    pos_abs_total = pos.ffill().fillna(0).abs().sum(1)
+    exposure_total = pos.ffill().fillna(0).abs().sum(1)
     pnl_total = pnl.fillna(0).sum(1)
-    pos_change_total = pos_change.fillna(0).sum(1)
+    flow_total = flow.fillna(0).sum(1)
 
     print(
-        compute_metrics(pnl=pnl_total, pos=pos_abs_total, pos_change=pos_change_total).to_frame('overall').T
+        compute_metrics(pnl=pnl_total, pos=exposure_total, flow=flow_total).to_frame('overall').T
     )
 
     px.line(_pnl_cum(pnl_total, risk, is_aum_cum), title='Pnl cum', log_y= is_aum_cum).show()
@@ -95,9 +95,9 @@ def backtest(
     px.line(_rolling_sharpe(pnl_total), title='rolling sharpe').show()
 
 
-    gross_exposure = pos_abs_total / (16 * pnl_total.std())
+    gross_exposure = exposure_total / (16 * pnl_total.std())
     rolling_25_days_risk = pnl_total.rolling(25).std() / pnl_total.std()
-
+    
     two_plotx_same_scale(
         gross_exposure, rolling_25_days_risk, title1='gross exposure (std)', title2='rolling 25 days risk (std)'
     ).show()
@@ -109,7 +109,7 @@ def backtest(
         plotx( risk * pnl.cumsum() / pnl_total.std(), title='pnl decomposed' ).show()
 
     return pd.concat([
-        compute_metrics(pnl=pnl, pos=pos, pos_change=pos_change),
+        compute_metrics(pnl=pnl, pos=pos, flow=flow),
         pnl.corrwith(pnl_total).to_frame('corr_with_book')
     ], axis=1)
 
@@ -119,9 +119,9 @@ def quick_backtest(signal:pd.DataFrame, returns:pd.DataFrame, risk:float = 1, is
     Signal is first aligned with the returns before backtesting. 
     """
     pos = align_pos_with_returns(signal, returns)
-    pos_change = pos.diff().abs()
+    flow = pos.diff().abs()
     pnl = compute_pnl(pos, returns)
-    return backtest(pnl=pnl, pos=pos, pos_change=pos_change, risk=risk, is_aum_cum=is_aum_cum)
+    return backtest(pnl=pnl, pos=pos, flow=flow, risk=risk, is_aum_cum=is_aum_cum)
 
 
 
