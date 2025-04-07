@@ -83,9 +83,9 @@ def backtest(
         pos_change = pos.ffill().fillna(0).diff().abs()
 
     pos_abs_total = pos.ffill().fillna(0).abs().sum(1)
-    pnl_total = pnl.ffill().fillna(0)
-    pos_change_total = pos_change.ffill().fillna(0)
-    
+    pnl_total = pnl.ffill().fillna(0).sum(1)
+    pos_change_total = pos_change.ffill().fillna(0).sum(1)
+
     print(
         compute_metrics(pnl=pnl_total, pos=pos_abs_total, pos_change=pos_change_total).to_frame('overall').T
     )
