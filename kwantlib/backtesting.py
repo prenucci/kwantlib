@@ -87,7 +87,7 @@ def backtest(
         px.imshow(pnl.corr().fillna(0)).show()
 
     if len(pnl.columns) < 70:
-        plotx( risk * pnl.cumsum() / pnl.std(), title='pnl decomposed' ).show()
+        plotx( risk * pnl.cumsum() / pnl_total.std(), title='pnl decomposed' ).show()
 
     return pd.concat([
         compute_metrics(pnl=pnl, pos=pos, pos_change=pos_change),
