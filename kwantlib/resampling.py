@@ -34,17 +34,19 @@ def shift_ignoring_nan(
 ### Align Position with Returns ###
 
 def _align_pos_with_returns_ds(
-        position:pd.DataFrame | pd.Series, returns:pd.Series
+        position:pd.DataFrame | pd.Series, returns:pd.Series, shift:int
     ) -> pd.DataFrame | pd.Series:
     """
     Reindex the position to match the index of not NaN returns for 1 instruments.
     """
     new_index = returns.dropna().index
 
-    # Remove duplicates and fill NaNs
+    # Remove duplicates, shift and fill NaNs
     position = (
-        position[~position.index.duplicated(keep='first')].sort_index(axis=0)
+        position
+        [~position.index.duplicated(keep='first')].sort_index(axis=0)
         .replace([np.inf, -np.inf], np.nan).ffill()
+        .shift(shift).fillna(0)
     )
 
     # Reindex to the cleaned returns index
@@ -53,7 +55,7 @@ def _align_pos_with_returns_ds(
     ).ffill().fillna(0)
 
 def _align_pos_with_returns_df(
-        position:pd.DataFrame, returns:pd.DataFrame
+        position:pd.DataFrame, returns:pd.DataFrame, shift:int
     ) -> pd.DataFrame:
 
     """
@@ -67,7 +69,7 @@ def _align_pos_with_returns_df(
     ], axis = 1).ffill().fillna(0)
 
 def align_pos_with_returns(
-        position:pd.DataFrame | pd.Series, returns:pd.DataFrame | pd.Series
+        position:pd.DataFrame | pd.Series, returns:pd.DataFrame | pd.Series, shift:int=0
     ) -> pd.DataFrame | pd.Series:
     """
     This function ensure that: 
@@ -82,9 +84,9 @@ def align_pos_with_returns(
     """
     match (type(position), type(returns)):
         case (pd.DataFrame | pd.Series, pd.Series):
-            return _align_pos_with_returns_ds(position, returns)
+            return _align_pos_with_returns_ds(position, returns, shift)
         case (pd.DataFrame, pd.DataFrame):
-            return _align_pos_with_returns_df(position, returns)
+            return _align_pos_with_returns_df(position, returns, shift)
         case _:
             raise ValueError('returns must be a pd.DataFrame or pd.Series')
 
