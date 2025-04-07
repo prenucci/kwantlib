@@ -2,6 +2,7 @@ import pandas as pd
 import plotly.express as px
 from .core import align_pos_with_returns, compute_pnl
 from .metrics import compute_metrics 
+import plotly.graph_objects as go
 
 ### Plot with plotly ###
 
@@ -25,6 +26,15 @@ def plotx(df:pd.Series | pd.DataFrame, title:str = None):
             return px.line(flatten_index(df), title=title)
         case _:
             raise TypeError
+        
+def two_plotx_same_scale(y1:pd.Series, y2:pd.Series, title1:str = None, title2:str = None):
+    assert y1.index.equals(y2.index)
+    x = y1.index
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=x, y=y1, name=title1, line_color='blue'))
+    fig.add_trace(go.Scatter(x=x, y=y2, name=title2, line_color='red', yaxis='y2'))
+    fig.update_layout(yaxis2={'overlaying': 'y', 'side': 'right'})
+    return fig
 
 ### Specific metrics 
 
@@ -70,9 +80,11 @@ def backtest(
         pos = pd.DataFrame(1, index=pnl.index, columns=pnl.columns)
     
     if pos_change is None:
-        pos_change = pos.diff().abs()
+        pos_change = pos.ffill().fillna(0).diff().abs()
 
-    pos_abs_total, pnl_total, pos_change_total = pos.abs().sum(1), pnl.sum(1), pos_change.sum(1)
+    pos_abs_total = pos.ffill().fillna(0).abs().sum(1)
+    pnl_total = pnl.ffill().fillna(0)
+    pos_change_total = pos_change.ffill().fillna(0)
     
     print(
         compute_metrics(pnl=pnl_total, pos=pos_abs_total, pos_change=pos_change_total).to_frame('overall').T
@@ -81,7 +93,9 @@ def backtest(
     px.line(_pnl_cum(pnl_total, risk, is_aum_cum), title='Pnl cum', log_y= is_aum_cum).show()
     px.line(_drawdown(pnl_total, risk, is_aum_cum), title='drawdown').show()
     px.line(_rolling_sharpe(pnl_total), title='rolling sharpe').show()
-    px.line(pos_abs_total / (16 * pnl_total.std()), title='gross exposure (std)').show()
+    two_plotx_same_scale(
+        pos_abs_total / (16 * pnl_total.std()), (16 * pnl_total.rolling(25).std()), title1='gross exposure', title2='risk'
+    ).show()
 
     if len(pnl.columns) > 1:
         px.imshow(pnl.corr().fillna(0)).show()
