@@ -83,8 +83,8 @@ def backtest(
         pos_change = pos.ffill().fillna(0).diff().abs()
 
     pos_abs_total = pos.ffill().fillna(0).abs().sum(1)
-    pnl_total = pnl.ffill().fillna(0).sum(1)
-    pos_change_total = pos_change.ffill().fillna(0).sum(1)
+    pnl_total = pnl.fillna(0).sum(1)
+    pos_change_total = pos_change.fillna(0).sum(1)
 
     print(
         compute_metrics(pnl=pnl_total, pos=pos_abs_total, pos_change=pos_change_total).to_frame('overall').T
@@ -93,8 +93,13 @@ def backtest(
     px.line(_pnl_cum(pnl_total, risk, is_aum_cum), title='Pnl cum', log_y= is_aum_cum).show()
     px.line(_drawdown(pnl_total, risk, is_aum_cum), title='drawdown').show()
     px.line(_rolling_sharpe(pnl_total), title='rolling sharpe').show()
+
+
+    gross_exposure = pos_abs_total / (16 * pnl_total.std())
+    rolling_25_days_risk = 16 * pnl_total.rolling(25).std()
+
     two_plotx_same_scale(
-        pos_abs_total / (16 * pnl_total.std()), (16 * pnl_total.rolling(25).std()), title1='gross exposure', title2='risk'
+        gross_exposure, rolling_25_days_risk, title1='gross exposure', title2='rolling 25 days risk'
     ).show()
 
     if len(pnl.columns) > 1:
