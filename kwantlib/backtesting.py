@@ -81,7 +81,7 @@ def backtest(
     px.line(_pnl_cum(pnl_total, risk, is_aum_cum), title='Pnl cum', log_y= is_aum_cum).show()
     px.line(_drawdown(pnl_total, risk, is_aum_cum), title='drawdown').show()
     px.line(_rolling_sharpe(pnl_total), title='rolling sharpe').show()
-    px.line(pos_abs_total / pnl_total.std(), title='gross exposure (std)').show()
+    px.line(pos_abs_total / (16 * pnl_total.std()), title='gross exposure (std)').show()
 
     if len(pnl.columns) > 1:
         px.imshow(pnl.corr().fillna(0)).show()
