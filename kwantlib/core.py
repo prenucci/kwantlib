@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import multiprocessing as mp
 from .resampling import shift_with_sample, align_pos_with_returns
-from .zscore_tools import clip_via_zscore
+from .operators import clip_via_zscore
 
 ### Compute Pnl ###
 

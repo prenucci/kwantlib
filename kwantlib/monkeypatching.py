@@ -1,5 +1,5 @@
 import pandas as pd
-from .zscore_tools import cross_moving_average, zscore, clip_via_zscore
+from .operators import cross_moving_average, zscore, clip_via_zscore
 from .resampling import shift_ignoring_nan, shift_with_sample, resample_daily
 from .backtesting import plotx, flatten_index
 

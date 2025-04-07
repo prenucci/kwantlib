@@ -1,5 +1,5 @@
 from .resampling import *
-from .zscore_tools import * 
+from .operators import * 
 from .core import *
 from .metrics import *
 from .backtesting import *
