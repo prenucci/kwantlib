@@ -65,7 +65,7 @@ def compute_pnl(position:pd.DataFrame | pd.Series, returns:pd.DataFrame | pd.Ser
 ### Compute position 
 
 def compute_position(
-        signal:pd.DataFrame, returns:pd.DataFrame, shift:int = 0,
+        signal:pd.DataFrame, returns:pd.DataFrame, shift:int = 1,
     ) -> pd.DataFrame:
     """ 
     Compute position with:
