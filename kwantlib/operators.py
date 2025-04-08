@@ -151,19 +151,3 @@ def clip_via_zscore(
         case _:
             raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(signal)}")
         
-def ls_ranking(signal: pd.DataFrame, keep_k_best: int = 5) -> pd.DataFrame:
-    """
-    Compute the long short ranking of the signal. long top k signal and short bottom k signal.
-
-    signal -> ( 1 if signal_i is top k, -1 if signal_i is bottom k, 0 otherwise )
-    """
-    n = len(signal.columns)
-
-    rank_df = signal.ffill().fillna(0).rank(
-        axis=1, method='average', na_option='keep'
-    )
-
-    is_top_k = (rank_df >= n - keep_k_best)
-    is_bottom_k = (rank_df <= keep_k_best)
-
-    return is_top_k.astype(int)  - is_bottom_k.astype(int)
