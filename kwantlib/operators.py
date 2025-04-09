@@ -3,6 +3,9 @@ import numpy as np
 import multiprocessing as mp
 from typing import Iterable
 
+
+### Cross Moving Average ###
+
 def _cross_moving_average_ds(
         signal:pd.Series, 
         smooth_params:Iterable[int], 
@@ -88,6 +91,8 @@ def cross_moving_average(
         case _:
             raise ValueError(f"signal should be a pd.Series or pd.DataFrame not {type(signal)}")
         
+### Zscore & clipping ###
+
 def zscore(
         signal:pd.DataFrame | pd.Series, lookback:int = 1008, is_ewm:bool = False
     ) -> pd.DataFrame | pd.Series:
@@ -151,6 +156,9 @@ def clip_via_zscore(
         case _:
             raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(signal)}")
         
+
+### Seasonal Zscore ###
+
 def _seasonal_zscore_ds(signal:pd.Series, lookback:int = 3000) -> pd.Series:
     signal_ = signal.dropna()
     group = signal_.groupby(signal_.index.dayofyear).ewm(lookback)
@@ -179,3 +187,23 @@ def seasonal_zscore(signal:pd.DataFrame | pd.Series, lookback:int = 3000) -> pd.
             return _seasonal_zscore_df(signal, lookback)
         case _:
             raise ValueError(f"Invalid signal type: {type(signal)}")
+        
+
+### Long Short Ranking ###
+
+def ls_ranking(signal: pd.DataFrame, keep_k_best: int = 5) -> pd.DataFrame:
+    """
+    Compute the long short ranking of the signal. long top k signal and short bottom k signal.
+
+    signal -> ( 1 if signal_i is top k, -1 if signal_i is bottom k, 0 otherwise )
+    """
+    n = len(signal.columns)
+
+    rank_df = signal.ffill().fillna(0).rank(
+        axis=1, method='average', na_option='keep'
+    )
+
+    is_top_k = (rank_df >= n - keep_k_best)
+    is_bottom_k = (rank_df <= keep_k_best)
+
+    return is_top_k.astype(int)  - is_bottom_k.astype(int)
