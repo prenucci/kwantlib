@@ -180,10 +180,13 @@ def _seasonal_zscore_df(signal:pd.DataFrame, lookback:int = 3000) -> pd.DataFram
     }, axis=1)
 
 def seasonal_zscore(signal:pd.DataFrame | pd.Series, lookback:int = 3000) -> pd.DataFrame | pd.Series:
+    """
+    Compute the seasonal zscore of the signal.
+    """
     match type(signal):
-        case pd.Series():
+        case pd.Series:
             return _seasonal_zscore_ds(signal, lookback)
-        case pd.DataFrame():
+        case pd.DataFrame:
             return _seasonal_zscore_df(signal, lookback)
         case _:
             raise ValueError(f"Invalid signal type: {type(signal)}")
