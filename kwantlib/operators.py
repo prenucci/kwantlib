@@ -151,3 +151,31 @@ def clip_via_zscore(
         case _:
             raise ValueError(f"df should be a pd.Series or pd.DataFrame not {type(signal)}")
         
+def _seasonal_zscore_ds(signal:pd.Series, lookback:int = 3000) -> pd.Series:
+    signal_ = signal.dropna()
+    group = signal_.groupby(signal_.index.dayofyear).ewm(lookback)
+
+    mean_over_dayofyear = group.mean()
+    mean_over_dayofyear.index = mean_over_dayofyear.index.droplevel(0)
+    mean_over_dayofyear = mean_over_dayofyear.sort_index(axis=0)
+
+    std_over_dayofyear = group.std()
+    std_over_dayofyear.index = std_over_dayofyear.index.droplevel(0)
+    std_over_dayofyear = std_over_dayofyear.sort_index(axis=0)
+
+    return (signal_ - mean_over_dayofyear) / std_over_dayofyear
+
+def _seasonal_zscore_df(signal:pd.DataFrame, lookback:int = 3000) -> pd.DataFrame:
+    return pd.concat({
+        col:_seasonal_zscore_ds(signal[col].dropna(), lookback)
+        for col in signal.columns
+    }, axis=1)
+
+def seasonal_zscore(signal:pd.DataFrame | pd.Series, lookback:int = 3000) -> pd.DataFrame | pd.Series:
+    match type(signal):
+        case pd.Series():
+            return _seasonal_zscore_ds(signal, lookback)
+        case pd.DataFrame():
+            return _seasonal_zscore_df(signal, lookback)
+        case _:
+            raise ValueError(f"Invalid signal type: {type(signal)}")
