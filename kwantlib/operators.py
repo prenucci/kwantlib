@@ -190,8 +190,8 @@ def seasonal_zscore(signal:pd.DataFrame | pd.Series, lookback:int = 3000) -> pd.
             return _seasonal_zscore_df(signal, lookback)
         case _:
             raise ValueError(f"Invalid signal type: {type(signal)}")
-        
 
+  
 ### Long Short Ranking ###
 
 def ls_ranking(signal: pd.DataFrame, keep_k_best: int = 5) -> pd.DataFrame:
