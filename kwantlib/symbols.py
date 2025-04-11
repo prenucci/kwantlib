@@ -14,7 +14,7 @@ oil = [
 # Energy
 energy = [
     "NG", # Henry Hub Natural Gas (NYMEX - CME)
-    "TTF", # TTF Natural Gas (ICE ue - ENDEX)
+    "TFMBM", # TTF Natural Gas (ICE ue - ENDEX)
     "ATWM", # Rotterdam Coal Futures (ICE Eu - ENDEX) ###
     "CFI2", # Carbon Emission Futures (ICE Eu - ENDEX) ###
 ]
@@ -58,7 +58,8 @@ softs = cocoa + coffee + cotton + sugar + ethanol + lumber
 # Agricultural Commodities
 
 vegoil = [
-    "FCPO", # Palm Oil (Bursa Malaysia BMD) 
+    "FCPO", # Palm Oil Malaysia (Bursa Malaysia BMD) 
+    "CPO", # Palm Oil US (CME)
     "BO", # Soybean Oil (CBOT - CME)
     "SM", # Soybean Meal (CBOT - CME)
     "RS", # Canola (ICE US) 
@@ -81,7 +82,7 @@ corn = [
     "C", # Corn (CBOT - CME)
     "EMA", # Corn (MATIF - Euronext) ###
     "MCR", # Corn (ROFEX - Rosario future Exchange) ###
-] 
+]
 
 rice = [
     "RR", # Rice (ICE US)
