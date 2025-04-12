@@ -46,7 +46,7 @@ sugar = [
 ethanol = [
     "CUU", # Chicago Ethanol (NYMEX - CME) ###
     "AEZ", # Ethanol (CBOT - CME) ###
-    "ETH", # BMF Ethanol (Sao Paulo Exchange) ###
+    "ETH", # BMF Ethanol (BMF - Sao Paulo Exchange) ###
 ]
 
 lumber = [
@@ -170,8 +170,21 @@ australian_equity = [
     "YAP", # ASX 200 Index Futures (ASX - Sydney)
 ]
 
-equity = us_equity + european_equity + japan_equity + korea_equity + taiwan_equity + australian_equity
+brazil_equity = [
+    "FMBZ", # MSCI Brazil Index Futures (Eurex)
+    "IND", # BOVESPA Index Futures (BMF - Sao Paulo Exchange)
+]
 
+equity = (
+    us_equity 
+    + european_equity 
+    + japan_equity 
+    + korea_equity 
+    + taiwan_equity 
+    + australian_equity 
+    + brazil_equity 
+    # + india_equity
+)
 
 #### Crypto Futures ####
 
