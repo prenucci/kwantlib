@@ -45,7 +45,7 @@ sugar = [
 
 ethanol = [
     "CUU", # Chicago Ethanol (NYMEX - CME) ###
-    "ZE", # Ethanol (CBOT - CME) ###
+    "AEZ", # Ethanol (CBOT - CME) ###
     "ETH", # BMF Ethanol (Sao Paulo Exchange) ###
 ]
 
@@ -143,7 +143,7 @@ us_equity = [
     "NQ", # E-mini Nasdaq-100 (CME)
     "YM", # E-mini Dow Jones (CBOE - CME)
     "RTY", # E-mini Russell 2000 (CME)
-    "VIX", # Volatility Index Futures (CBOE - CME)
+    "VX", # Volatility Index Futures (CBOE - CME)
 ]
 
 european_equity = [
