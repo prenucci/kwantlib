@@ -230,4 +230,6 @@ crypto = [
 # ]
 
 # bonds = us_bonds + european_bonds + japan_bonds + korea_bonds + taiwan_bonds + india_bonds + australia_bonds
+bonds = []
 
+futures = commodities + equity + crypto + bonds 
