@@ -14,7 +14,8 @@ oil = [
 # Energy
 energy = [
     "NG", # Henry Hub Natural Gas (NYMEX - CME)
-    "TFMBM", # TTF Natural Gas (ICE ue - ENDEX)
+    "NGLNM", # NBP UK Natural Gas (ICE Eu - NBP UK)
+    "TFMBM", # TTF Dutch Natural Gas (ICE Eu - ENDEX)
     "ATWM", # Rotterdam Coal Futures (ICE Eu - ENDEX) ###
     "CFI2", # Carbon Emission Futures (ICE Eu - ENDEX) ###
 ]
