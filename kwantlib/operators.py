@@ -159,37 +159,35 @@ def clip_via_zscore(
 
 ### Seasonal Zscore ###
 
-def _seasonal_zscore_ds(signal:pd.Series, smooth:int, lookback:int, is_ewm:bool) -> pd.Series:
+def _seasonal_zscore_ds(signal:pd.Series, lookback:int = 3000) -> pd.Series:
     signal_ = signal.dropna()
     group = signal_.groupby(signal_.index.dayofyear).ewm(lookback)
 
     mean_over_dayofyear:pd.Series = group.mean()
     mean_over_dayofyear.index = mean_over_dayofyear.index.droplevel(0)
     mean_over_dayofyear = mean_over_dayofyear.sort_index(axis=0)
-    mean_over_dayofyear_smoothed = mean_over_dayofyear.ewm(halflife=smooth//2).mean() if is_ewm else mean_over_dayofyear.rolling(smooth).mean()
 
     std_over_dayofyear:pd.Series = group.std()
     std_over_dayofyear.index = std_over_dayofyear.index.droplevel(0)
     std_over_dayofyear = std_over_dayofyear.sort_index(axis=0)
-    std_over_dayofyear_smoothed = std_over_dayofyear.ewm(halflife=smooth//2).std() if is_ewm else std_over_dayofyear.rolling(smooth).std()
 
-    return (signal_ - mean_over_dayofyear_smoothed) / std_over_dayofyear_smoothed
+    return (signal_ - mean_over_dayofyear) / std_over_dayofyear
 
-def _seasonal_zscore_df(signal:pd.DataFrame, smooth:int, lookback:int, is_ewm:bool) -> pd.DataFrame:
+def _seasonal_zscore_df(signal:pd.DataFrame, lookback:int = 3000) -> pd.DataFrame:
     return pd.concat({
-        col:_seasonal_zscore_ds(signal[col].dropna(), smooth, lookback, is_ewm)
+        col:_seasonal_zscore_ds(signal[col].dropna(), lookback)
         for col in signal.columns
     }, axis=1)
 
-def seasonal_zscore(signal:pd.DataFrame | pd.Series, smooth:int=2, lookback:int = 3000, is_ewm:bool = True) -> pd.DataFrame | pd.Series:
+def seasonal_zscore(signal:pd.DataFrame | pd.Series, lookback:int = 3000) -> pd.DataFrame | pd.Series:
     """
     Compute the seasonal zscore of the signal.
     """
     match type(signal):
         case pd.Series:
-            return _seasonal_zscore_ds(signal, smooth, lookback, is_ewm)
+            return _seasonal_zscore_ds(signal, lookback)
         case pd.DataFrame:
-            return _seasonal_zscore_df(signal, smooth, lookback, is_ewm)
+            return _seasonal_zscore_df(signal, lookback)
         case _:
             raise ValueError(f"Invalid signal type: {type(signal)}")
 
