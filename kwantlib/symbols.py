@@ -22,7 +22,6 @@ energy = [
     "CFI2", # Carbon Emission Futures (ICE Eu - ENDEX) ###
 ]
 
-
 # Softs Commodities
 cocoa = [
     "CC", # Cocoa (ICE Us)
@@ -56,7 +55,6 @@ lumber = [
 ]
 
 softs = cocoa + coffee + cotton + sugar + ethanol + lumber
-
 
 # Agricultural Commodities
 
