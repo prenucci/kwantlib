@@ -26,6 +26,7 @@ pos = kl.compute_position(signal, returns, shift=1)
 pnl = kl.compute_pnl(pos, returns)
 
 kl.backtest(pos, pnl)
+```
 
 ## Conclusion
 
