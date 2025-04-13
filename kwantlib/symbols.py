@@ -91,7 +91,6 @@ rice = [
 
 grains = wheat + soybeans + corn + rice
 
-
 # Livestock & Dairy
 
 livestock = [
@@ -109,7 +108,6 @@ dairy = [
 orange_juice = [
     "OJ", # Orange Juice (ICE) ###
 ]
-
 
 # Metals & Precious 
 
