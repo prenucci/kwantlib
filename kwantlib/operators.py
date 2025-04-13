@@ -175,9 +175,9 @@ def _seasonal_zscore_ds(signal:pd.Series, smooth:int, lookback:int, is_ewm:bool)
 
     return (signal_ - mean_over_dayofyear_smoothed) / std_over_dayofyear_smoothed
 
-def _seasonal_zscore_df(signal:pd.DataFrame, smooth:int, lookback:int) -> pd.DataFrame:
+def _seasonal_zscore_df(signal:pd.DataFrame, smooth:int, lookback:int, is_ewm:bool) -> pd.DataFrame:
     return pd.concat({
-        col:_seasonal_zscore_ds(signal[col].dropna(), smooth, lookback)
+        col:_seasonal_zscore_ds(signal[col].dropna(), smooth, lookback, is_ewm)
         for col in signal.columns
     }, axis=1)
 
