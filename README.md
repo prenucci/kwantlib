@@ -16,13 +16,12 @@ price = pd.read_csv('price.csv')
 
 # Calculate returns and volatility
 returns = price.pct_change()
-vol = returns.rolling(20).std()
 
 # Apply operators
 signal = kl.cross_moving_average(price, smooth_params=[1, 10], lookback_params=[100, 200])
 
 # Calculate position and PnL
-pos = kl.compute_position(signal, returns, shift=1)
+pos = kl.compute_position(signal, returns, shift=1) # Includes vol targetting & shifting
 pnl = kl.compute_pnl(pos, returns)
 
 kl.backtest(pos, pnl)
