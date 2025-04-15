@@ -65,7 +65,7 @@ vegoil = [
     "SM", # Soybean Meal (CBOT - CME)
     "RS", # Canola (ICE US) 
 
-    "NSO", # Refined Soybean Oil (Indian Exchange) ###
+    # "NSO", # Refined Soybean Oil (Indian Exchange) ###
 ]
 
 wheat = [
@@ -156,13 +156,13 @@ japan_equity = [
     "NIY", # Nikkei 225 (CME)
 ]
 
-korea_equity = [
-    "KS", # KOSPI 200 Index Futures (KRX - Korea)
-]
+# korea_equity = [
+#     "KS", # KOSPI 200 Index Futures (KRX - Korea)
+# ] -> missing data in refinitiv
 
-taiwan_equity = [
-    "TX", # TAIEX Index Futures (TAIFEX - Taiwan)
-]
+# taiwan_equity = [
+#     "TX", # TAIEX Index Futures (TAIFEX - Taiwan)
+# ] -> missing data in refinitiv
 
 australian_equity = [
     "YAP", # ASX 200 Index Futures (ASX - Sydney)
@@ -177,10 +177,10 @@ equity = (
     us_equity 
     + european_equity 
     + japan_equity 
-    + korea_equity 
-    + taiwan_equity 
     + australian_equity 
     + brazil_equity 
+    # + korea_equity
+    # + taiwan_equity
     # + india_equity
 )
 
