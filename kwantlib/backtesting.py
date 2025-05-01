@@ -28,8 +28,9 @@ def plotx(df:pd.Series | pd.DataFrame, title:str = None):
             raise TypeError
         
 def two_plotx_same_scale(y1:pd.Series, y2:pd.Series, title1:str = None, title2:str = None):
-    assert y1.index.equals(y2.index)
-    x = y1.index
+    x = y1.index.union(y2.index)
+    y1 = y1.reindex(x, method='ffill')
+    y2 = y2.reindex(x, method='ffill')
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=x, y=y1, name=title1, line_color='blue'))
     fig.add_trace(go.Scatter(x=x, y=y2, name=title2, line_color='red', yaxis='y2'))
