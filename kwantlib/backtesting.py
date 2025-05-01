@@ -1,6 +1,6 @@
 import pandas as pd 
 import plotly.express as px
-from .core import align_pos_with_returns, compute_pnl
+from .core import compute_position, compute_pnl
 from .metrics import compute_metrics 
 import plotly.graph_objects as go
 
@@ -67,7 +67,8 @@ def backtest(
     pnl:pd.DataFrame, 
     pos:pd.DataFrame = None, 
     flow:pd.DataFrame = None, 
-    risk:float = 1, is_aum_cum:bool = False
+    risk:float = 1, 
+    is_aum_cum:bool = False,
 ) -> pd.DataFrame:   
         
     """
@@ -113,14 +114,26 @@ def backtest(
         pnl.corrwith(pnl_total).to_frame('corr_with_book')
     ], axis=1)
 
-def quick_backtest(signal:pd.DataFrame, returns:pd.DataFrame, risk:float = 1, is_aum_cum:bool = False) -> pd.DataFrame:
+def quick_backtest(
+        signal:pd.DataFrame, 
+        returns:pd.DataFrame, 
+        risk:float = 1, 
+        is_aum_cum:bool = False,
+        is_roll_diff:bool = False,
+    ) -> pd.DataFrame:
     """
     Quick backtest the strategy using the signal and the returns.
-    Signal is first aligned with the returns before backtesting. 
+    Signal is shifted before computing the position.
     """
-    pos = align_pos_with_returns(signal, returns)
-    flow = pos.diff().abs()
+    pos = compute_position(signal, returns, shift=1)
     pnl = compute_pnl(pos, returns)
+
+    if is_roll_diff:
+        prices = returns.fillna(0).cumsum()
+        pos = pos.mul(prices, level=0, axis=0)
+
+    flow = pos.diff().abs()
+    
     return backtest(pnl=pnl, pos=pos, flow=flow, risk=risk, is_aum_cum=is_aum_cum)
 
 
