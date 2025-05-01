@@ -117,6 +117,7 @@ def backtest(
 def quick_backtest(
         signal:pd.DataFrame, 
         returns:pd.DataFrame, 
+        shift:int = 1,
         risk:float = 1, 
         is_aum_cum:bool = False,
         is_roll_diff:bool = False,
@@ -125,7 +126,7 @@ def quick_backtest(
     Quick backtest the strategy using the signal and the returns.
     Signal is shifted before computing the position.
     """
-    pos = compute_position(signal, returns, shift=1)
+    pos = compute_position(signal, returns, shift=shift)
     pnl = compute_pnl(pos, returns)
 
     if is_roll_diff:
@@ -133,7 +134,7 @@ def quick_backtest(
         pos = pos.mul(prices, level=0, axis=0)
 
     flow = pos.diff().abs()
-    
+
     return backtest(pnl=pnl, pos=pos, flow=flow, risk=risk, is_aum_cum=is_aum_cum)
 
 
