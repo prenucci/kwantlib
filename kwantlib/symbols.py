@@ -84,7 +84,7 @@ wheat = [
     "W", # Chicago Wheat (CBOT - CME)
     "KW", # Kansas Wheat (CBOT - CME)
     # "BL2", # Euronext Milling Wheat (Euronext)
-    "LWB", # Europe Wheat (ICE Eu) ###
+    # "LWB", # Europe Wheat (ICE Eu) ###
 ]
 
 soybeans = [
@@ -153,7 +153,6 @@ us_equity = [
     "NQ", # E-mini Nasdaq-100 (CME)
     "YM", # E-mini Dow Jones (CBOE - CME)
     "RTY", # E-mini Russell 2000 (CME)
-    "VX", # Volatility Index Futures (CBOE - CME)
 ]
 
 european_equity = [
@@ -195,6 +194,12 @@ equity = (
     # + taiwan_equity
     # + india_equity
 )
+
+#### VIX ####
+
+vix = [
+    "VX", # Volatility Index Futures (CBOE - CME)
+]
 
 #### Crypto Futures ####
 
