@@ -10,7 +10,7 @@ oil = [
     'LGO', # Gasoil (NYMEX - CME)
     'LCO', # Brent Crude Oil (ICE)
     'RB', # Gasoline (NYMEX - CME)
-    'JKE', # Kerosene (Tokyo Commodity Exchange) ###
+    # 'JKE', # Kerosene (Tokyo Commodity Exchange) ###
 ]
 
 # Energy
@@ -47,7 +47,7 @@ sugar = [
 ethanol = [
     "CUU", # Chicago Ethanol (NYMEX - CME) ###
     "AEZ", # Ethanol (CBOT - CME) ###
-    "ETH", # BMF Ethanol (BMF - Sao Paulo Exchange) ###
+    # "ETH", # BMF Ethanol (BMF - Sao Paulo Exchange) ###
 ]
 
 lumber = [
@@ -71,7 +71,7 @@ vegoil = [
 wheat = [
     "W", # Chicago Wheat (CBOT - CME)
     "KW", # Kansas Wheat (CBOT - CME)
-    "BL2", # Euronext Milling Wheat (Euronext)
+    # "BL2", # Euronext Milling Wheat (Euronext)
     "LWB", # Europe Wheat (ICE Eu) ###
 ]
 
@@ -81,8 +81,8 @@ soybeans = [
 
 corn = [
     "C", # Corn (CBOT - CME)
-    "EMA", # Corn (MATIF - Euronext) ###
-    "MCR", # Corn (ROFEX - Rosario future Exchange) ###
+    # "EMA", # Corn (MATIF - Euronext) ###
+    # "MCR", # Corn (ROFEX - Rosario future Exchange) ###
 ]
 
 rice = [
