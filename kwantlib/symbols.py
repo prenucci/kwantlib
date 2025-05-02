@@ -145,10 +145,10 @@ us_equity = [
 ]
 
 european_equity = [
-    "STXE", # Euro Stoxx 50 (Eurex)
-    "FXXP", # Stoxx Europe 600 Banks (Eurex) 
-    "FDX", # DAX 40 (Eurex)
-    "FCE", # CAC 40 (Euronext)
+    # "STXE", # Euro Stoxx 50 (Eurex)
+    # "FXXP", # Stoxx Europe 600 Banks (Eurex) 
+    # "FDX", # DAX 40 (Eurex)
+    # "FCE", # CAC 40 (Euronext)
     "FFI", # FTSE 100 (ICE Eu)
 ]
 
@@ -165,12 +165,12 @@ japan_equity = [
 # ] -> missing data in refinitiv
 
 australian_equity = [
-    "YAP", # ASX 200 Index Futures (ASX - Sydney)
+    # "YAP", # ASX 200 Index Futures (ASX - Sydney)
 ]
 
 brazil_equity = [
-    "FMBZ", # MSCI Brazil Index Futures (Eurex)
-    "IND", # BOVESPA Index Futures (BMF - Sao Paulo Exchange)
+    # "FMBZ", # MSCI Brazil Index Futures (Eurex)
+    # "IND", # BOVESPA Index Futures (BMF - Sao Paulo Exchange)
 ]
 
 equity = (
