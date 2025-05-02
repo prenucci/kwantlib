@@ -144,7 +144,7 @@ lme_metals = [
 
 metals = cme_metals + lme_metals
 
-commodities = oil + energy + softs + vegoil + grains + livestock + dairy + precious + metals
+commodities = energy + softs + vegoil + grains + livestock + dairy + precious + metals
 
 #### Equity Futures ####
 
