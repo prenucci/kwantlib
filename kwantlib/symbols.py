@@ -13,14 +13,26 @@ oil = [
     # 'JKE', # Kerosene (Tokyo Commodity Exchange) ###
 ]
 
-# Energy
-energy = [
-    "NG", # Henry Hub US Natural Gas (NYMEX - CME)
+# European gas 
+
+european_gas = [
     "NGLNM", # NBP UK Natural Gas (ICE Eu - NBP UK)
     "TFMBM", # TTF Dutch Natural Gas (ICE Eu - ENDEX)
+]
+
+us_gas = [
+    "NG", # Henry Hub US Natural Gas (NYMEX - CME)
+]
+
+coal = [
     "ATWM", # Rotterdam Coal Futures (ICE Eu - ENDEX) ###
+]
+
+carbon = [
     "CFI2", # Carbon Emission Futures (ICE Eu - ENDEX) ###
 ]
+
+energy = oil + european_gas + us_gas + coal + carbon
 
 # Softs Commodities
 cocoa = [
