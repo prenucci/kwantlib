@@ -205,7 +205,6 @@ vix = [
 
 crypto = [
     "BTC", # Bitcoin Futures (CME)
-    "ETH", # Ethereum Futures (CME)
 ]
 
 # #### Bonds ####
