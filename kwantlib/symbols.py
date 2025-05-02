@@ -157,11 +157,11 @@ us_equity = [
 ]
 
 european_equity = [
-    # "STXE", # Euro Stoxx 50 (Eurex)
+    "STXE", # Euro Stoxx 50 (Eurex)
     # "FXXP", # Stoxx Europe 600 Banks (Eurex) 
     # "FDX", # DAX 40 (Eurex)
     # "FCE", # CAC 40 (Euronext)
-    "FFI", # FTSE 100 (ICE Eu)
+    # "FFI", # FTSE 100 (ICE Eu)
 ]
 
 japan_equity = [
