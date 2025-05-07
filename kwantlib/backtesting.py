@@ -79,16 +79,16 @@ def backtest(
     Gives a global view (aggregated pnl for all instruments) of the strategy and a per-instrument view.
     """
 
-    pnl = pnl.loc[start_date:end_date]
-    pos = pos.loc[start_date:end_date]
-    flow = flow.loc[start_date:end_date]
-    
     if pos is None:
         # Case when no position is provided, just compute pnl related metrics.
         pos = pd.DataFrame(1, index=pnl.index, columns=pnl.columns)
     
     if flow is None:
         flow = pos.ffill().fillna(0).diff().abs()
+
+    pnl = pnl.loc[start_date:end_date]
+    pos = pos.loc[start_date:end_date]
+    flow = flow.loc[start_date:end_date]
 
     exposure_total = pos.ffill().fillna(0).abs().sum(1)
     pnl_total = pnl.fillna(0).sum(1)
