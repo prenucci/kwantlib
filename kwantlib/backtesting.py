@@ -70,12 +70,18 @@ def backtest(
     flow:pd.DataFrame = None, 
     risk:float = 1, 
     is_aum_cum:bool = False,
+    start_date:str = None,
+    end_date:str = None,
 ) -> pd.DataFrame:   
         
     """
     Backtest the strategy using the pnl, position and position change.
     Gives a global view (aggregated pnl for all instruments) of the strategy and a per-instrument view.
     """
+
+    pnl = pnl.loc[start_date:end_date]
+    pos = pos.loc[start_date:end_date]
+    flow = flow.loc[start_date:end_date]
     
     if pos is None:
         # Case when no position is provided, just compute pnl related metrics.
@@ -95,7 +101,6 @@ def backtest(
     px.line(_pnl_cum(pnl_total, risk, is_aum_cum), title='Pnl cum', log_y= is_aum_cum).show()
     px.line(_drawdown(pnl_total, risk, is_aum_cum), title='drawdown').show()
     px.line(_rolling_sharpe(pnl_total), title='rolling sharpe').show()
-
 
     gross_exposure = exposure_total / (16 * pnl_total.std())
     rolling_25_days_risk = pnl_total.rolling(25).std() / pnl_total.std()
@@ -122,6 +127,8 @@ def quick_backtest(
         risk:float = 1, 
         is_aum_cum:bool = False,
         is_roll_diff:bool = False,
+        start_date:str = None,
+        end_date:str = None,
     ) -> pd.DataFrame:
     """
     Quick backtest the strategy using the signal and the returns.
@@ -136,7 +143,7 @@ def quick_backtest(
 
     flow = pos.diff().abs()
 
-    return backtest(pnl=pnl, pos=pos, flow=flow, risk=risk, is_aum_cum=is_aum_cum)
+    return backtest(pnl=pnl, pos=pos, flow=flow, risk=risk, is_aum_cum=is_aum_cum, start_date=start_date, end_date=end_date)
 
 
 
