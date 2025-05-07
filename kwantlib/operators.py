@@ -60,10 +60,12 @@ def _cross_moving_average_df(
         col: res for col, res in zip(signal.columns, results)
     }, axis=1)
 
+(2, 3, 4, 5, 6, 10, 12, 14, 17, 20, 28, 36, 44, 66,)
+
 def cross_moving_average(        
         signal:pd.DataFrame | pd.Series, 
         smooth_params:Iterable[int] = (1, 2, 3, 4, 6, 8, 10,), 
-        lookback_params:Iterable[int] = (2, 3, 4, 5, 6, 10, 12, 14, 17, 20, 28, 36, 44, 66,), 
+        lookback_params:Iterable[int] = (17, 20, 28, 36, 44, 66,), 
         is_proj:bool = True, is_ewm:bool = True, 
     ) -> pd.DataFrame: 
 
