@@ -210,54 +210,53 @@ crypto = [
 
 # #### Bonds ####
 
-# us_bonds = [
-#     "ZN", # 10-Year T-Note (CBOT - CME)
-#     "ZF", # 5-Year T-Note (CBOT - CME)
-#     "ZT", # 2-Year T-Note (CBOT - CME)
+us_bonds = [
+    "TY", # 10-Year T-Note (CBOT - CME)
+    "FV", # 5-Year T-Note (CBOT - CME)
+    "TU", # 2-Year T-Note (CBOT - CME)
 #     "ZB", # 30-Year T-Bond (CBOT - CME)
 #     "UB", # Ultra T-Bond (CBOT - CME)
 #     "GE", # Eurodollar Futures (CME)
 #     "SR3", # SOFR Futures (CME)
-# ]
+]
 
-# european_bonds = [
+european_bonds = [
 #     "FGBL", # Euro-Bund (10Y German) (Eurex)
 #     "FGBM", # Euro-Bobl (5Y German) (Eurex)
 #     "FGBS", # Euro-Schatz (2Y German) (Eurex)
 #     "FBTP", # Euro-BTP (10Y Italian) (Eurex)
 #     "OE1", # OAT 10Y French Government Bond (Eurex) ###
-# ]
+]
 
-# japan_bonds = [
+japan_bonds = [
 #     "JB", # 10-Year Japanese Government Bond (JGB) Futures (JPX - Osaka Exchange)
 #     "2JGB", # 2-Year JGB Futures (JPX - Osaka Exchange) ###
 #     "5JGB", # 5-Year JGB Futures (JPX - Osaka Exchange) ###
 #     "20JGB", # 20-Year JGB Futures (JPX - Osaka Exchange) ###
-# ]
+]
 
-# korea_bonds = [
+korea_bonds = [
 #     "KTB3", # 3-Year Korea Treasury Bond Futures (KRX - Korea Exchange)
 #     "KTB5", # 5-Year Korea Treasury Bond Futures (KRX - Korea Exchange)
 #     "KTB10", # 10-Year Korea Treasury Bond Futures (KRX - Korea Exchange)
-# ]
+]
 
-# taiwan_bonds = [
+taiwan_bonds = [
 #     "GBF", # 10-Year Government Bond Futures (TAIFEX - Taiwan Futures Exchange)
 #     "GBF5", # 5-Year Government Bond Futures (TAIFEX - Taiwan Futures Exchange) ###
-# ]
+]
 
-# india_bonds = [
+india_bonds = [
 #     "IN10", # 10-Year Government Bond Futures (NSE India - National Stock Exchange)
 #     "IN6", # 6-Year Government Bond Futures (NSE India) ###
-# ]
+]
 
-# australia_bonds = [
+australia_bonds = [
 #     "YM", # 3-Year Australian Government Bond Futures (ASX - Sydney Futures Exchange)
 #     "XM", # 10-Year Australian Government Bond Futures (ASX - Sydney Futures Exchange)
 #     "XT", # 20-Year Treasury Bond Futures (ASX - Sydney Futures Exchange) ###
-# ]
+]
 
-# bonds = us_bonds + european_bonds + japan_bonds + korea_bonds + taiwan_bonds + india_bonds + australia_bonds
-bonds = []
+bonds = us_bonds + european_bonds + japan_bonds + korea_bonds + taiwan_bonds + india_bonds + australia_bonds
 
 futures = commodities + equity + crypto + bonds 
