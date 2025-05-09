@@ -121,14 +121,7 @@ orange_juice = [
     "OJ", # Orange Juice (ICE) ###
 ]
 
-# Metals & Precious 
-
-precious = [
-    "GC", # Gold (COMEX - CME)
-    "SI", # Silver (COMEX - CME)
-    "PA", # Palladium (COMEX - CME)
-    "PL", # Platinum (COMEX - CME)
-]
+# Metals
 
 cme_metals = [    
     "HG", # Copper (COMEX - CME)
@@ -144,7 +137,16 @@ lme_metals = [
 
 metals = cme_metals + lme_metals
 
-commodities = energy + softs + vegoil + grains + livestock + dairy + metals + precious
+commodities = energy + softs + vegoil + grains + livestock + dairy + metals 
+
+#### Precious Metals ####
+
+precious = [
+    "GC", # Gold (COMEX - CME)
+    "SI", # Silver (COMEX - CME)
+    "PA", # Palladium (COMEX - CME)
+    "PL", # Platinum (COMEX - CME)
+]
 
 #### Equity Futures ####
 
@@ -259,4 +261,4 @@ australia_bonds = [
 
 bonds = us_bonds + european_bonds + japan_bonds + korea_bonds + taiwan_bonds + india_bonds + australia_bonds
 
-futures = commodities + equity + crypto + bonds 
+futures = commodities + equity + crypto + bonds + vix + precious
