@@ -262,6 +262,12 @@ crypto = [
     "FETE", # Ethereum Futures (CME)
 ]
 
+#### Dollars Index Futures ####
+
+dollars = [
+    "DX", # US Dollar Index Futures (CME)
+]
+
 futures = (
-    commodities + precious + equity + bonds + vix + crypto 
+    commodities + precious + equity + bonds + vix + crypto + dollars
 )
