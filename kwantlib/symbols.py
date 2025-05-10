@@ -266,7 +266,7 @@ crypto = [
 
 dollars = [
     "DX", # US Dollar Index Futures (CME)
-    "ED", # Euro Dollar Futures (CME)
+    # "ED", # Euro Dollar Futures (CME)
 ]
 
 currencies = [
