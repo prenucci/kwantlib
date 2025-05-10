@@ -210,7 +210,7 @@ us_bonds = [
 ]
 
 european_bonds = [
-#     "FGBL", # Euro-Bund (10Y German) (Eurex)
+    "FGBL", # Euro-Bund (10Y German) (Eurex)
 #     "FGBM", # Euro-Bobl (5Y German) (Eurex)
 #     "FGBS", # Euro-Schatz (2Y German) (Eurex)
 #     "FBTP", # Euro-BTP (10Y Italian) (Eurex)
