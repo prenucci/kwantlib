@@ -266,8 +266,17 @@ crypto = [
 
 dollars = [
     "DX", # US Dollar Index Futures (CME)
+    "ED", # Euro Dollar Futures (CME)
+]
+
+currencies = [
+    # "JY", # Japanese Yen Futures (CME)
+    # "BP", # British Pound Futures (CME)
+    # "AD", # Australian Dollar Futures (CME)
+    # "CD", # Canadian Dollar Futures (CME)
+    # "SF", # Swiss Franc Futures (CME)
 ]
 
 futures = (
-    commodities + precious + equity + bonds + vix + crypto + dollars
+    commodities + precious + equity + bonds + vix + crypto + dollars + currencies
 )
