@@ -169,17 +169,22 @@ japan_equity = [
     "NIY", # Nikkei 225 (CME)
 ]
 
-# korea_equity = [
-#     "KS", # KOSPI 200 Index Futures (KRX - Korea)
-# ] -> missing data in refinitiv
+india_equity = [
+    "GIF", # Nifty 50 Index Futures (NSE India - National Stock Exchange)
+]
 
-# taiwan_equity = [
-#     "TX", # TAIEX Index Futures (TAIFEX - Taiwan)
-# ] -> missing data in refinitiv
+korea_equity = [
+#     "KS", # KOSPI 200 Index Futures (KRX - Korea)
+] 
+
+taiwan_equity = [
+    # "TX", # TAIEX Index Futures (TAIFEX - Taiwan)
+] 
 
 australian_equity = [
     # "YAP", # ASX 200 Index Futures (ASX - Sydney)
 ]
+
 
 brazil_equity = [
     # "FMBZ", # MSCI Brazil Index Futures (Eurex)
