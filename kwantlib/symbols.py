@@ -174,7 +174,7 @@ india_equity = [
 ]
 
 korea_equity = [
-#     "KS", # KOSPI 200 Index Futures (KRX - Korea)
+    "KS", # KOSPI 200 Index Futures (KRX - Korea)
 ] 
 
 taiwan_equity = [
@@ -182,13 +182,13 @@ taiwan_equity = [
 ] 
 
 australian_equity = [
-    # "YAP", # ASX 200 Index Futures (ASX - Sydney)
+    # "YAF", # ASX 200 Index Futures (ASX - Sydney)
 ]
 
 
 brazil_equity = [
     # "FMBZ", # MSCI Brazil Index Futures (Eurex)
-    # "IND", # BOVESPA Index Futures (BMF - Sao Paulo Exchange)
+    "IND", # BOVESPA Index Futures (BMF - Sao Paulo Exchange)
 ]
 
 equity = (
