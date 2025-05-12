@@ -165,26 +165,13 @@ european_equity = [
     # "FFI", # FTSE 100 (ICE Eu)
 ]
 
-japan_equity = [
-    "NIY", # Nikkei 225 (CME)
-]
-
-india_equity = [
+asian_equity = [
+    "NIY", # Nikkei 225 Japan (CME)
     "GIF", # Nifty 50 Index Futures (NSE India - National Stock Exchange)
-]
-
-korea_equity = [
     "KS", # KOSPI 200 Index Futures (KRX - Korea)
-] 
-
-taiwan_equity = [
     # "TX", # TAIEX Index Futures (TAIFEX - Taiwan)
-] 
-
-australian_equity = [
     # "YAF", # ASX 200 Index Futures (ASX - Sydney)
 ]
-
 
 brazil_equity = [
     # "FMBZ", # MSCI Brazil Index Futures (Eurex)
@@ -194,12 +181,8 @@ brazil_equity = [
 equity = (
     us_equity 
     + european_equity 
-    + japan_equity 
-    + australian_equity 
+    + asian_equity 
     + brazil_equity 
-    # + korea_equity
-    # + taiwan_equity
-    # + india_equity
 )
 
 # #### Bonds ####
