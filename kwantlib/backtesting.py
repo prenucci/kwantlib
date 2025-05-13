@@ -86,13 +86,13 @@ def backtest(
     if flow is None:
         flow = pos.ffill().fillna(0).diff().abs()
 
-    pnl = pnl.loc[start_date:end_date]
-    pos = pos.loc[start_date:end_date]
-    flow = flow.loc[start_date:end_date]
+    pnl = pnl.loc[start_date:end_date].fillna(0)
+    pos = pos.loc[start_date:end_date].ffill().fillna(0)
+    flow = flow.loc[start_date:end_date].fillna(0)
 
-    exposure_total = pos.ffill().fillna(0).abs().sum(1)
-    pnl_total = pnl.fillna(0).sum(1)
-    flow_total = flow.fillna(0).sum(1)
+    exposure_total = pos.groupby(level=0, axis=1).sum().abs().sum(1)
+    pnl_total = pnl.groupby(level=0, axis=1).sum().sum(1)
+    flow_total = flow.groupby(level=0, axis=1).sum().sum(1)
 
     print(
         compute_metrics(pnl=pnl_total, pos=exposure_total, flow=flow_total).to_frame('overall').T
