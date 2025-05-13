@@ -78,7 +78,7 @@ def compute_position(
         lambda x: x.dropna().rolling(25).std()
     ).reindex(signal.index, method='ffill').ffill()
     pos = signal.div(volatility, axis = 0, level = 0).ffill()
-    # pos = clip_via_zscore(pos, 3, 1008, is_ewm=True)
+    pos = clip_via_zscore(pos, 3, 1008, is_ewm=True)
     pos = shift_with_sample(pos, shift)
     return align_pos_with_returns(pos, returns)
 
