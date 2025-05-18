@@ -72,7 +72,7 @@ def backtest(
     is_aum_cum:bool = False,
     start_date:str = None,
     end_date:str = None,
-) -> pd.DataFrame:   
+) -> pd.DataFrame | None:   
         
     """
     Backtest the strategy using the pnl, position and position change.
@@ -115,11 +115,11 @@ def backtest(
     if len(pnl.columns) < 70:
         scaled_pnl = risk * pnl.cumsum() / pnl_total.std()
         plotx( scaled_pnl.sort_index(axis=1), title='pnl decomposed' ).show()
-
+    
     return pd.concat([
         compute_metrics(pnl=pnl, pos=pos, flow=flow),
         pnl.corrwith(pnl_total).to_frame('corr_with_book')
-    ], axis=1)
+    ], axis=1) if len(pnl.columns) < 100 else None
 
 def quick_backtest(
         signal:pd.DataFrame, 
@@ -130,7 +130,7 @@ def quick_backtest(
         is_roll_diff:bool = False,
         start_date:str = None,
         end_date:str = None,
-    ) -> pd.DataFrame:
+    ) -> pd.DataFrame | None:
     """
     Quick backtest the strategy using the signal and the returns.
     Signal is shifted before computing the position.
