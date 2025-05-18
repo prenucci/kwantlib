@@ -109,7 +109,7 @@ def backtest(
         gross_exposure, rolling_25_days_risk, title1='gross exposure (std)', title2='rolling 25 days risk (std)'
     ).show()
 
-    if len(pnl.columns) > 1:
+    if 1 < len(pnl.columns) < 50:
         px.imshow(pnl.corr().fillna(0)).show()
 
     if len(pnl.columns) < 70:
@@ -119,7 +119,7 @@ def backtest(
     return pd.concat([
         compute_metrics(pnl=pnl, pos=pos, flow=flow),
         pnl.corrwith(pnl_total).to_frame('corr_with_book')
-    ], axis=1) if len(pnl.columns) < 100 else None
+    ], axis=1) if len(pnl.columns) < 300 else None
 
 def quick_backtest(
         signal:pd.DataFrame, 
