@@ -64,8 +64,8 @@ def _cross_moving_average_df(
 
 def cross_moving_average(        
         signal:pd.DataFrame | pd.Series, 
-        smooth_params:Iterable[int] = (1, 2, 3, 4, 6, 8, 10,), 
-        lookback_params:Iterable[int] = (17, 20, 28, 36, 44, 66,), 
+        smooth:int | Iterable[int] = (1, 2, 3, 4, 6, 8, 10,), 
+        lookback:int | Iterable[int] = (17, 20, 28, 36, 44, 66,), 
         is_proj:bool = True, is_ewm:bool = True, 
     ) -> pd.DataFrame: 
 
@@ -81,14 +81,20 @@ def cross_moving_average(
     - is_ewm is a boolean that indicates if the moving average and std should be computed using an exponential moving average.
     """
 
+    if isinstance(smooth, int):
+        smooth = (smooth,)
+
+    if isinstance(lookback, int):
+        lookback = (lookback,)
+
     match type(signal):
         case pd.Series:
             return _cross_moving_average_ds(
-                signal, smooth_params, lookback_params, is_proj, is_ewm
+                signal, smooth_params=smooth, lookback_params=lookback, is_proj=is_proj, is_ewm=is_ewm
             )
         case pd.DataFrame:
             return _cross_moving_average_df(
-                signal, smooth_params, lookback_params, is_proj, is_ewm,  
+                signal, smooth_params=smooth, lookback_params=lookback, is_proj=is_proj, is_ewm=is_ewm
             )
         case _:
             raise ValueError(f"signal should be a pd.Series or pd.DataFrame not {type(signal)}")
