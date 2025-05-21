@@ -34,7 +34,7 @@ def _compute_pnl_df(position:pd.DataFrame, returns:pd.DataFrame) -> pd.DataFrame
     tasks = (
         ( position.loc[:, [col]], returns.loc[:, col]) 
         for col in returns.columns 
-        if col in position.columns.get_level_values(0)
+        if col in position.columns.get_level_values(0).unique()
     )
     with mp.Pool(mp.cpu_count() - 2) as pool:
         results = pool.starmap(_compute_pnl_ds, tasks)
@@ -47,9 +47,9 @@ def compute_pnl(position:pd.DataFrame | pd.Series, returns:pd.DataFrame | pd.Ser
     Position is re-aligned with the returns before computation.
     """
     
-    if missing_position := [col for col in returns.columns if col not in position.columns.get_level_values(0)]:
+    if missing_position := [col for col in returns.columns if col not in position.columns.get_level_values(0).unique()]:
         print(f'missing position: {missing_position}')
-    if missing_returns := [col for col in position.columns.get_level_values(0) if col not in returns.columns]:
+    if missing_returns := [col for col in position.columns.get_level_values(0).unique() if col not in returns.columns]:
         print(f'missing returns: {missing_returns}')
 
     match (type(position), type(returns)):

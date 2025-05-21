@@ -43,7 +43,8 @@ def _align_pos_with_returns_ds(
 
     # Remove duplicates and fill NaNs
     position = (
-        position[~position.index.duplicated(keep='first')].sort_index(axis=0)
+        position
+        [~position.index.duplicated(keep='first')].sort_index(axis=0)
         .replace([np.inf, -np.inf], np.nan).ffill()
     )
 
@@ -63,7 +64,7 @@ def _align_pos_with_returns_df(
     return pd.concat([
         _align_pos_with_returns_ds(position.loc[:, [col]], returns.loc[:, col])
         for col in returns.columns 
-        if col in position.columns.get_level_values(0)
+        if col in position.columns.get_level_values(0).unique()
     ], axis = 1).ffill().fillna(0)
 
 def align_pos_with_returns(
