@@ -109,10 +109,10 @@ def backtest(
         gross_exposure, rolling_25_days_risk, title1='gross exposure (std)', title2='rolling 25 days risk (std)'
     ).show()
 
-    if 1 < len(pnl.columns) < 50:
+    if 1 < len(pnl.columns) < 100:
         px.imshow(pnl.corr().fillna(0)).show()
 
-    if len(pnl.columns) < 70:
+    if len(pnl.columns) < 100:
         scaled_pnl = risk * pnl.cumsum() / pnl_total.std()
         plotx( scaled_pnl.sort_index(axis=1), title='pnl decomposed' ).show()
     
