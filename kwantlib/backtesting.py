@@ -147,7 +147,7 @@ def quick_backtest(
     return backtest(pnl=pnl, pos=pos, flow=flow, risk=risk, is_aum_cum=is_aum_cum, start_date=start_date, end_date=end_date)
 
 
-def backtest_level(sig:pd.DataFrame, returns:pd.DataFrame, level:int = 0, *args, **kwargs)->pd.DataFrame:
+def backtest_level(sig:pd.DataFrame, returns:pd.DataFrame, level:int = 0, *args, **kwargs)->pd.DataFrame | None:
 
     pos = compute_position(sig, returns).ffill().fillna(0)
     pnl = compute_pnl(pos, returns).fillna(0)
