@@ -84,6 +84,7 @@ def backtest(
         pos = pd.DataFrame(1, index=pnl.index, columns=pnl.columns)
     
     if flow is None:
+        # Case when no flow is provided, infer it from the position.
         flow = pos.ffill().fillna(0).diff().abs()
 
     pnl = pnl.loc[start_date:end_date].fillna(0)
@@ -146,13 +147,13 @@ def quick_backtest(
 
     return backtest(pnl=pnl, pos=pos, flow=flow, risk=risk, is_aum_cum=is_aum_cum, start_date=start_date, end_date=end_date)
 
-
 def backtest_level(sig:pd.DataFrame, returns:pd.DataFrame, level:int = 0, *args, **kwargs)->pd.DataFrame | None:
 
     pos = compute_position(sig, returns).ffill().fillna(0)
     pnl = compute_pnl(pos, returns).fillna(0)
 
-    pos = pos.groupby(level=level, axis=1).sum()
-    pnl = pnl.groupby(level=level, axis=1).sum()
-
-    return backtest(pnl, pos, *args, **kwargs)
+    return backtest(
+        pnl.groupby(level=level, axis=1).sum(), 
+        pos.groupby(level=level, axis=1).sum(), 
+        *args, **kwargs
+    )
