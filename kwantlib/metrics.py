@@ -17,9 +17,11 @@ def pnl_per_trade(
     return pnl.mean() / flow.mean()
 
 def maxdrawdown(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
-    return (
+    drawdown = (
         pnl.cumsum().cummax() - pnl.cumsum()
-    ).max() / ( pnl.std() * 16 )
+    ).max()
+    std = pnl.std() * 16
+    return drawdown / std 
 
 def calamar(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
     return sharpe(pnl) / maxdrawdown(pnl)
@@ -74,10 +76,6 @@ def _compute_metrics_df(pnl:pd.DataFrame, pos:pd.DataFrame, flow:pd.DataFrame) -
     return pd.concat([
         result_col for result_col in results
     ], axis=1).T.sort_values(by='eff_sharpe', ascending=False)
-    
-    return pd.concat({
-        col:result_col for col, result_col in zip(pos.columns, results)
-    }, axis=1).T.sort_values(by='eff_sharpe', ascending=False)
 
 def compute_metrics(
     pnl:pd.DataFrame | pd.Series, 
