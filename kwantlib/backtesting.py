@@ -41,8 +41,8 @@ def two_plotx_same_scale(y1:pd.Series, y2:pd.Series, title1:str = None, title2:s
 
 def _rolling_sharpe(pnl:pd.Series, periods:list[int] = [1/2, 1, 2, 4, 8, 10, 15]) -> pd.DataFrame:
     return pd.concat({
-        f'{n}D': 16 * pnl.rolling(n).mean() / pnl.rolling(n).std()
-        for n in [int(252 * x) for x in periods]
+        f'{n}Y': 16 * pnl.rolling(n * 252).mean() / pnl.rolling(n * 252).std()
+        for n in periods
     } | {
         'expanding': 16 * pnl.expanding(min_periods=1008).mean() / pnl.expanding(min_periods=1008).std(),
         'overall': pd.Series(16 * pnl.mean() / pnl.std(), index=pnl.index), 
