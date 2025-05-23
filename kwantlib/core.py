@@ -74,10 +74,20 @@ def compute_position(
     3. zscore clipping 
     4. re-alignement on returns
     """
-    volatility = returns.apply(
-        lambda x: x.dropna().rolling(25).std()
-    ).reindex(signal.index, method='ffill').ffill()
-    pos = signal.div(volatility, axis = 0, level = 0).ffill()
+    volatility = (
+        returns
+        .apply(lambda x: x.dropna().rolling(25).std())
+        .reindex(signal.index, method='ffill')
+        .ffill()
+    )
+
+    pos = (
+        signal
+        .div(volatility, axis = 0, level = 0)
+        .replace([np.inf, -np.inf], np.nan)
+        .ffill()
+        .fillna(0)
+    )
     pos = clip_via_zscore(pos, 3, 1008, is_ewm=True)
     pos = shift_with_sample(pos, shift)
     return align_pos_with_returns(pos, returns)
