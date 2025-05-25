@@ -124,7 +124,7 @@ def backtest(
     ], axis=1) if len(pnl.columns) < 300 else None
 
 def quick_backtest(
-        signal:pd.DataFrame, 
+        signal:pd.DataFrame | pd.Series, 
         returns:pd.DataFrame, 
         shift:int = 1,
         risk:float = 1, 
@@ -137,6 +137,10 @@ def quick_backtest(
     Quick backtest the strategy using the signal and the returns.
     Signal is shifted before computing the position.
     """
+
+    if isinstance(signal, pd.Series):
+        signal = pd.DataFrame(signal, index=returns.index, columns=returns.columns)
+
     pos = compute_position(signal, returns, shift=shift)
     pnl = compute_pnl(pos, returns)
 
