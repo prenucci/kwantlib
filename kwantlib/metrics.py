@@ -52,21 +52,23 @@ def unlevered_std(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) ->
 def _compute_metrics_ds(pnl:pd.Series, pos:pd.Series, flow:pd.Series) -> pd.Series:
 
     return pd.Series({
-        'eff_sharpe': sharpe(pnl[pnl!=0]),
-        'raw_sharpe': sharpe(pnl),
-        'turnover (%)': 100 * turnover(pos, flow),
-        'pnl_per_trade (bps)': 1e4 * pnl_per_trade(pnl, flow),
-        'unlev_return (y%)': 100 * 252 * unlevered_mean_return(pnl, pos),
-        'unlev_std (y%)': 100 * 16 * unlevered_std(pnl, pos),
-        'maxdrawdown (ystd)': maxdrawdown(pnl),
-        'ftrading (%)': 100 * ftrading(pos),
-        'mar': mar(pnl),
-        'calamar': calamar(pnl),
-        'sortino': sortino(pnl),
-        'loss_std_ratio (%)': 100 * loss_std_ratio(pnl),
-        'win_rate (%)': 100 * win_rate(pnl),
-        'r_sharpe': sharpe(pnl.fillna(0).rolling(252).mean()) / 16,
-    }, name=pnl.name)
+            'eff_sharpe': sharpe(pnl[pnl!=0]),
+            'raw_sharpe': sharpe(pnl),
+            'turnover (%)': 100 * turnover(pos, flow),
+            'pnl_per_trade (bps)': 1e4 * pnl_per_trade(pnl, flow),
+            'unlev_return (y%)': 100 * 252 * unlevered_mean_return(pnl, pos),
+            'unlev_std (y%)': 100 * 16 * unlevered_std(pnl, pos),
+            'maxdrawdown (ystd)': maxdrawdown(pnl),
+            'ftrading (%)': 100 * ftrading(pos),
+            'mar': mar(pnl),
+            'calamar': calamar(pnl),
+            'sortino': sortino(pnl),
+            'loss_std_ratio (%)': 100 * loss_std_ratio(pnl),
+            'win_rate (%)': 100 * win_rate(pnl),
+            'r_sharpe': sharpe(pnl.fillna(0).rolling(252).mean()) / 16,
+        }, 
+        name=pnl.name
+    )
 
 def _compute_metrics_df(pnl:pd.DataFrame, pos:pd.DataFrame, flow:pd.DataFrame) -> pd.DataFrame:
 
