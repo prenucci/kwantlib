@@ -23,11 +23,8 @@ def maxdrawdown(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
     std = pnl.std() * 16
     return drawdown / std 
 
-def mar(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
-    return sharpe(pnl) / maxdrawdown(pnl)
-
 def calamar(pnl:pd.DataFrame | pd.Series) -> pd.Series | float:
-    return pnl.rolling(252 * 3).apply(mar).mean()
+    return sharpe(pnl) / maxdrawdown(pnl)
 
 def ftrading(pos:pd.DataFrame | pd.Series) -> pd.Series | float:
     return (pos.abs() != 0).mean()
@@ -60,7 +57,6 @@ def _compute_metrics_ds(pnl:pd.Series, pos:pd.Series, flow:pd.Series) -> pd.Seri
             'unlev_std (y%)': 100 * 16 * unlevered_std(pnl, pos),
             'maxdrawdown (ystd)': maxdrawdown(pnl),
             'ftrading (%)': 100 * ftrading(pos),
-            'mar': mar(pnl),
             'calamar': calamar(pnl),
             'sortino': sortino(pnl),
             'loss_std_ratio (%)': 100 * loss_std_ratio(pnl),
