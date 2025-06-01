@@ -5,7 +5,7 @@
 # Oil & Energy
 oil = [
     'CL', # WTI Crude Oil (NYMEX - CME) 
-    'QM', # E-Mini Crude Oil (NYMEX - CME)
+    # 'QM', # E-Mini Crude Oil (NYMEX - CME)
     'HO', # Heating Oil (NYMEX - CME)
     'LGO', # Gasoil (NYMEX - CME)
     'LCO', # Brent Crude Oil (ICE)
