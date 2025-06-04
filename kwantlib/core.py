@@ -1,6 +1,6 @@
 import pandas as pd 
 import numpy as np
-import multiprocessing as mp
+import ray.util.multiprocessing as mp
 from .resampling import shift_with_sample, align_pos_with_returns
 from .operators import clip_via_zscore
 
@@ -36,7 +36,7 @@ def _compute_pnl_df(position:pd.DataFrame, returns:pd.DataFrame) -> pd.DataFrame
         for col in returns.columns 
         if col in position.columns.get_level_values(0).unique()
     )
-    with mp.Pool(mp.cpu_count() - 2) as pool:
+    with mp.Pool() as pool:
         results = pool.starmap(_compute_pnl_ds, tasks)
     pnl = pd.concat(results, axis = 1)
     return pnl.fillna(0)

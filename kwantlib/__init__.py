@@ -5,3 +5,5 @@ from .metrics import *
 from .backtesting import *
 from .symbols import *
 
+import ray
+ray.init()

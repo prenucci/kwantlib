@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-import multiprocessing as mp
+import ray.util.multiprocessing as mp
 from typing import Iterable
 
 
@@ -53,7 +53,7 @@ def _cross_moving_average_df(
         ) 
         for col in signal.columns
     )
-    with mp.Pool(mp.cpu_count() - 2) as pool:
+    with mp.Pool() as pool:
         results = pool.starmap(_cross_moving_average_ds, tasks)
         
     return pd.concat({

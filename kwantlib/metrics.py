@@ -1,5 +1,5 @@
 import pandas as pd
-import multiprocessing as mp
+import ray.util.multiprocessing as mp
 
 ### Metrics ###
 
@@ -77,7 +77,7 @@ def _compute_metrics_df(pnl:pd.DataFrame, pos:pd.DataFrame, flow:pd.DataFrame) -
         ( pnl.loc[:, col], pos.loc[:, col], flow.loc[:, col]) 
         for col in pnl.columns.intersection(pos.columns).intersection(flow.columns)
     )
-    with mp.Pool(mp.cpu_count() - 2) as pool:
+    with mp.Pool() as pool:
         results = pool.starmap(_compute_metrics_ds, tasks)
 
     return pd.concat([
