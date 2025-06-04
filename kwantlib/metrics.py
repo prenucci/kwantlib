@@ -44,6 +44,9 @@ def unlevered_mean_return(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Se
 def unlevered_std(pnl:pd.DataFrame | pd.Series, pos:pd.DataFrame | pd.Series) -> pd.Series | float:
     return pnl.std() / pos.abs().mean()
 
+def var(pnl:pd.Series, alpha:float = 0.05) -> float:
+    return - ( pnl / pnl.std() ).quantile(alpha)
+
 ### Tools ###
 
 def _compute_metrics_ds(pnl:pd.Series, pos:pd.Series, flow:pd.Series) -> pd.Series:
@@ -62,6 +65,8 @@ def _compute_metrics_ds(pnl:pd.Series, pos:pd.Series, flow:pd.Series) -> pd.Seri
             'loss_std_ratio (%)': 100 * loss_std_ratio(pnl),
             'win_rate (%)': 100 * win_rate(pnl),
             'r_sharpe': sharpe(pnl.fillna(0).rolling(252).mean()) / 16,
+            'var95': var(pnl, 0.05),
+            'var99': var(pnl, 0.01),
         }, 
         name=pnl.name
     )
