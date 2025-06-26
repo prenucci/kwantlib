@@ -9,6 +9,7 @@ setup(
         "numpy",
         "scikit-learn",
         "plotly",
+        "ray",
         ],
     author="Pierre Renucci",
     author_email="renuccip@icloud.com",
